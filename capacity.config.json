@@ -1,0 +1,250 @@
+{
+  "kalendarz": {
+    "zmiany": 3,
+    "hZmiana": 8,
+    "przerwy": 0.5,
+    "dniRobocze": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "gniazda": [
+    {
+      "id": "PIL",
+      "nazwa": "Piłowanie",
+      "podstawaMocy": "maszyna",
+      "wydajnosc": 0.85,
+      "grupaSt": [
+        "PIL",
+        "PILD",
+        "PILCNC"
+      ],
+      "trybMocy": "stanowiska",
+      "godzinyTydz": 0,
+      "stanowiskaNaZmianie": [
+        2,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "LAS3D",
+      "nazwa": "Laser 3D",
+      "podstawaMocy": "maszyna",
+      "wydajnosc": 0.85,
+      "grupaSt": [
+        "LAS3D"
+      ],
+      "trybMocy": "stanowiska",
+      "stanowiskaNaZmianie": [
+        2,
+        2,
+        0
+      ]
+    },
+    {
+      "id": "LAS2D",
+      "nazwa": "Laser 2D",
+      "podstawaMocy": "maszyna",
+      "wydajnosc": 0.85,
+      "grupaSt": [
+        "LAS2D",
+        "GILB"
+      ],
+      "trybMocy": "stanowiska",
+      "stanowiskaNaZmianie": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "GIEB",
+      "nazwa": "Gięcie",
+      "podstawaMocy": "maszyna",
+      "wydajnosc": 0.85,
+      "grupaSt": [
+        "GIEB",
+        "GIEP"
+      ],
+      "trybMocy": "stanowiska",
+      "stanowiskaNaZmianie": [
+        2,
+        2,
+        0
+      ]
+    },
+    {
+      "id": "CNC",
+      "nazwa": "Toczenie CNC",
+      "podstawaMocy": "maszyna",
+      "wydajnosc": 0.85,
+      "grupaSt": [
+        "GAMM",
+        "TOKC",
+        "TOKR1",
+        "TOKR2"
+      ],
+      "trybMocy": "stanowiska",
+      "stanowiskaNaZmianie": [
+        4,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "CNCF",
+      "nazwa": "Frezowanie CNC",
+      "podstawaMocy": "maszyna",
+      "wydajnosc": 0.85,
+      "grupaSt": [
+        "CCNC",
+        "FRER",
+        "FREM",
+        "FREMU",
+        "FREBLO",
+        "FREGLO",
+        "FRERLO",
+        "FREY"
+      ],
+      "trybMocy": "stanowiska",
+      "stanowiskaNaZmianie": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ROL",
+      "nazwa": "Operacje rolek",
+      "podstawaMocy": "maszyna",
+      "wydajnosc": 0.85,
+      "grupaSt": [
+        "GIL",
+        "GW1",
+        "GW2",
+        "HYD",
+        "PCV",
+        "PRAM1",
+        "PRAM2",
+        "PRMAN",
+        "PRSD",
+        "PRSM",
+        "RYL",
+        "SKFROL",
+        "SPAROL",
+        "STP",
+        "SZLOS",
+        "TOKOD",
+        "TOKOM",
+        "ZAB",
+        "ZEG",
+        "ZKO"
+      ],
+      "trybMocy": "stanowiska",
+      "stanowiskaNaZmianie": [
+        2,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "SPAW",
+      "nazwa": "Spawanie",
+      "podstawaMocy": "maszyna",
+      "wydajnosc": 0.85,
+      "grupaSt": [
+        "SP",
+        "SPG",
+        "SPHD",
+        "SPL",
+        "SPN",
+        "SPTZ",
+        "SPU",
+        "SPW",
+        "ZG",
+        "ZGR"
+      ],
+      "trybMocy": "stanowiska",
+      "stanowiskaNaZmianie": [
+        7,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "SZLIF",
+      "nazwa": "Szlifowanie",
+      "podstawaMocy": "maszyna",
+      "wydajnosc": 0.85,
+      "grupaSt": [
+        "SZLIF"
+      ],
+      "trybMocy": "stanowiska",
+      "stanowiskaNaZmianie": [
+        5,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "SPR",
+      "nazwa": "SPR",
+      "podstawaMocy": "maszyna",
+      "wydajnosc": 0.85,
+      "grupaSt": [
+        "SPR"
+      ],
+      "trybMocy": "stanowiska",
+      "stanowiskaNaZmianie": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "MAL",
+      "nazwa": "Malarnia + mycie",
+      "podstawaMocy": "praca",
+      "wydajnosc": 0.85,
+      "grupaSt": [
+        "MAL",
+        "MYC"
+      ],
+      "trybMocy": "stanowiska",
+      "stanowiskaNaZmianie": [
+        4,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "MON",
+      "nazwa": "Montaż",
+      "podstawaMocy": "praca",
+      "wydajnosc": 0.85,
+      "grupaSt": [
+        "MON",
+        "MONBD",
+        "MONEL",
+        "MONHD",
+        "MONI",
+        "MONMB",
+        "MONSL",
+        "MONW",
+        "MPDT",
+        "MPD1"
+      ],
+      "trybMocy": "stanowiska",
+      "stanowiskaNaZmianie": [
+        9,
+        0,
+        0
+      ]
+    }
+  ],
+  "wyjatki": []
+}

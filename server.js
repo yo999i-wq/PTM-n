@@ -9,8 +9,9 @@ const os   = require('os');
 
 const config = require('./config');
 const { queryMaterials, queryMaterialsGlobal, queryMaterialDetail, queryOrdersAC, queryZamPositions, queryProPositions, queryPlanMaterials, queryPlanZlecenieMap, fbQuery, testConnection, detectIndeksColumn, getTableColumns, clearCache, cacheStats } = require('./src/fb-mrp');
+const { queryCapacityLoad, queryCapacityOps, readConfig: readCapConfig, writeConfig: writeCapConfig, clearCapacityCache } = require('./src/capacity');
 
-const PORT       = process.env.PORT || config.port || 5300;
+const PORT       = process.env.PORT || config.port || 5350;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -402,6 +403,54 @@ const server = http.createServer(async (req, res) => {
       fbHost:  config.firebird?.host,
       fbDb:    config.firebird?.database,
     });
+    return;
+  }
+
+  // ── API: Capacity — konfiguracja gniazd + kalendarz ─────────
+  // GET  /api/capacity/config   → odczyt konfiguracji
+  // POST /api/capacity/config   → zapis (body = pełna konfiguracja JSON)
+  if (urlPath === '/api/capacity/config' && method === 'GET') {
+    try { jsonResp(res, { ok: true, config: readCapConfig() }); }
+    catch (err) { errResp(res, err.message); }
+    return;
+  }
+  if (urlPath === '/api/capacity/config' && method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        writeCapConfig(JSON.parse(body));
+        clearCapacityCache();
+        jsonResp(res, { ok: true });
+      } catch (err) {
+        console.error('[API] /api/capacity/config error:', err.message);
+        errResp(res, err.message, 400);
+      }
+    });
+    return;
+  }
+
+  // ── API: Capacity — obciążenie [h] per gniazdo × tydzień ─────
+  // GET /api/capacity?weeks=12
+  if (urlPath === '/api/capacity' && method === 'GET') {
+    try {
+      jsonResp(res, await queryCapacityLoad(qs.weeks || 12));
+    } catch (err) {
+      console.error('[API] /api/capacity error:', err.message);
+      errResp(res, err.message);
+    }
+    return;
+  }
+
+  // ── API: Capacity — operacje gniazda w tygodniu (drill-down) ─
+  // GET /api/capacity/ops?gniazdo=SPAW&week=2026-W27
+  if (urlPath === '/api/capacity/ops' && method === 'GET') {
+    try {
+      jsonResp(res, await queryCapacityOps((qs.gniazdo || '').trim(), (qs.week || '').trim()));
+    } catch (err) {
+      console.error('[API] /api/capacity/ops error:', err.message);
+      errResp(res, err.message, 400);
+    }
     return;
   }
 

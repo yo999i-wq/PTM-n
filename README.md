@@ -8,7 +8,7 @@ Połączenie bezpośrednie z bazą Firebird (Rekord).
 ```
 1. install.bat       ← instaluje node-firebird (raz)
 2. START.bat         ← uruchamia serwer
-3. http://localhost:5300
+3. http://localhost:5350
 ```
 
 ## Konfiguracja (config.js)
@@ -91,7 +91,7 @@ Zwraca dokumenty powiązane z materiałem:
 **Błąd połączenia FB:**
 ```
 Sprawdź: config.js → host, port, database, user, password
-Test:    http://localhost:5300/api/test
+Test:    http://localhost:5350/api/test
 ```
 
 **Filtr zlecenia nie działa / pusty wynik:**
@@ -113,7 +113,7 @@ Zamiennik: Można napisać własne zapytanie SQL bez stored proc.
 ```
 mrp-browser/
 ├── config.js          ← konfiguracja Firebird + limity
-├── server.js          ← serwer HTTP + REST API (port 5300)
+├── server.js          ← serwer HTTP + REST API (port 5350)
 ├── src/
 │   └── fb-mrp.js      ← zapytania Firebird
 ├── public/

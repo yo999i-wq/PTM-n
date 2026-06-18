@@ -454,6 +454,48 @@ tr.drow-sum td{color:var(--orange)}
 @media (max-width: 900px){
   .detail-panel.open{width:100%;position:absolute;right:0;top:0;bottom:0;z-index:20}
 }
+/* ── Panel "Zaawansowane" ─────────────────────────────────── */
+.adv-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:22px}
+.adv-tab{
+  background:transparent;border:none;border-bottom:2px solid transparent;
+  color:var(--text2);font-family:inherit;font-size:13px;font-weight:600;
+  padding:10px 16px;cursor:pointer;border-radius:8px 8px 0 0;transition:all .15s;white-space:nowrap;
+}
+.adv-tab:hover{background:rgba(255,255,255,.06);color:var(--text)}
+body.light .adv-tab:hover{background:rgba(0,0,0,.05)}
+.adv-tab.active{color:var(--blue);border-bottom-color:var(--blue);background:rgba(37,99,235,.10)}
+.adv-tab .adv-ico{margin-right:7px}
+.adv-pane{display:none}
+.adv-pane.active{display:block;animation:advFade .22s ease}
+@keyframes advFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.adv-pane-head{margin-bottom:16px}
+.adv-pane-title{font-size:15px;font-weight:800;color:var(--text)}
+.adv-pane-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.adv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:18px}
+.adv-tile{
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 14px;
+  display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;
+}
+.adv-tile::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 35%,rgba(255,255,255,.04) 50%,transparent 65%)}
+.adv-tile-ico{font-size:22px;line-height:1}
+.adv-tile-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+.adv-tile-val{font-size:13px;color:var(--text2);font-weight:600}
+.adv-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  padding:54px 24px;gap:14px;background:var(--bg2);border:1px dashed var(--border);border-radius:14px;min-height:300px;
+}
+.adv-empty-ico{font-size:54px;line-height:1;filter:drop-shadow(0 6px 16px rgba(0,0,0,.45))}
+.adv-empty-title{font-size:18px;font-weight:800;color:var(--text)}
+.adv-empty-desc{font-size:13px;color:var(--text3);max-width:560px;line-height:1.65}
+.adv-badge{
+  margin-top:4px;font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.3px;
+  background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.32);padding:6px 13px;border-radius:999px;
+}
+.cap-inp{background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px;font-family:inherit}
+.cap-cell{cursor:pointer;transition:outline .1s}
+.cap-cell:hover{outline:2px solid var(--text2);outline-offset:-1px}
+#advancedPanel details>summary{list-style:none}
+#advancedPanel details>summary::-webkit-details-marker{display:none}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -481,6 +523,7 @@ tr.drow-sum td{color:var(--orange)}
   <button class="btn btn-ghost btn-sm" id="btnTheme" onclick="toggleTheme()" title="Przełącz tryb jasny/ciemny">🌙</button>
   <button class="btn btn-ghost btn-sm" id="btnSummary" onclick="toggleSummary()" title="Podsumowanie i wykresy">📊 Podsumowanie</button>
   <button class="btn btn-ghost btn-sm" id="btnSupplier" onclick="toggleSupplier()" title="Analiza dostawcy — ile zapłacić u kogo (z zamówień własnych)">🏭 Analiza dostawcy</button>
+  <button class="btn btn-ghost btn-sm" id="btnAdvanced" onclick="toggleAdvanced()" title="Zaawansowane: capacity, obciążenie produkcji, priorytety, rozkład projektów w czasie">🚀 Zaawansowane</button>
   <button class="btn btn-ghost btn-sm" onclick="toggleHelp()">❓ Legenda</button>
 </div>
 
@@ -829,6 +872,145 @@ tr.drow-sum td{color:var(--orange)}
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:12px" id="supDrillTable"></table>
   </div>
+</div>
+
+<!-- PANEL ZAAWANSOWANE -->
+<div id="advancedPanel" style="display:none;position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;padding:20px 24px">
+
+  <!-- header -->
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+    <div>
+      <div style="font-size:16px;font-weight:800;color:var(--text)">🚀 Zaawansowane</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">Planowanie i analityka produkcji</div>
+    </div>
+    <div style="flex:1"></div>
+    <button class="btn btn-ghost btn-sm" onclick="toggleAdvanced()">✕ Zamknij</button>
+  </div>
+
+  <!-- zakładki -->
+  <div class="adv-tabs">
+    <button class="adv-tab active" data-tab="capacity" onclick="advSwitchTab('capacity')"><span class="adv-ico">📦</span>Capacity</button>
+    <button class="adv-tab" data-tab="load" onclick="advSwitchTab('load')"><span class="adv-ico">⚙️</span>Obciążenie produkcji</button>
+    <button class="adv-tab" data-tab="priority" onclick="advSwitchTab('priority')"><span class="adv-ico">🎯</span>Priorytety produkcji</button>
+    <button class="adv-tab" data-tab="timeline" onclick="advSwitchTab('timeline')"><span class="adv-ico">🗓️</span>Rozkład projektów w czasie</button>
+  </div>
+
+  <!-- Capacity -->
+  <section class="adv-pane active" id="advPane-capacity">
+    <div class="adv-pane-head" style="display:flex;align-items:flex-end;gap:12px">
+      <div>
+        <div class="adv-pane-title">📦 Capacity — zdolności produkcyjne</div>
+        <div class="adv-pane-sub">Dostępne moce gniazd vs. obciążenie z harmonogramu (Firebird M_PRZEWOD_OP)</div>
+      </div>
+      <div style="flex:1"></div>
+      <label style="font-size:11px;color:var(--text2)">Okno:
+        <select id="capWeeks" onchange="loadCapacity(true)" style="margin-left:4px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">
+          <option value="8">8 tyg</option>
+          <option value="12" selected>12 tyg</option>
+          <option value="16">16 tyg</option>
+          <option value="26">26 tyg (~6 mies)</option>
+          <option value="39">39 tyg (~9 mies)</option>
+          <option value="52">52 tyg (1 rok)</option>
+        </select>
+      </label>
+      <button class="btn btn-ghost btn-sm" onclick="loadCapacity(true)" title="Odśwież z bazy">↻</button>
+    </div>
+
+    <div id="capKpi" class="adv-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
+    <div id="capStatus" style="font-size:11px;color:var(--text3);margin:2px 0 12px"></div>
+
+    <!-- Heatmapa wykorzystania -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;overflow-x:auto">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap">
+        <div style="font-size:12px;font-weight:700;color:var(--text2)">Wykorzystanie gniazd [%] wg tygodni</div>
+        <div style="flex:1"></div>
+        <div style="display:flex;gap:10px;font-size:10px;color:var(--text3)">
+          <span><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:rgba(16,185,129,.18);vertical-align:-1px"></span> &lt;80</span>
+          <span><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:rgba(245,158,11,.22);vertical-align:-1px"></span> 80–100</span>
+          <span><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:rgba(239,68,68,.25);vertical-align:-1px"></span> 100–115</span>
+          <span><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:#B91C1C;vertical-align:-1px"></span> &gt;115</span>
+        </div>
+      </div>
+      <div id="capHeat" style="font-family:var(--font-mono)"></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:8px">Kliknij komórkę → lista operacji danego gniazda w tygodniu.</div>
+    </div>
+
+    <!-- Drill-down: operacje gniazda w tygodniu -->
+    <div id="capDrill" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px"></div>
+
+    <!-- Kalendarz dostępności -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:12px;font-weight:700;color:var(--text2)">🗓️ Kalendarz dostępności — wyjątki (urlopy / święta / przeglądy)</span>
+        <div style="flex:1"></div>
+        <span id="capCalSaved" style="font-size:10px;color:var(--green)"></span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:11px;color:var(--text2)">
+        <select id="wxGniazdo" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:11px"></select>
+        <select id="wxTyp" onchange="capWxTypChange()" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:11px">
+          <option value="urlop">urlop</option>
+          <option value="swieto">święto</option>
+          <option value="przeglad">przegląd</option>
+        </select>
+        <input type="date" id="wxOd" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">
+        <span style="color:var(--text3)">–</span>
+        <input type="date" id="wxDo" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">
+        <input type="number" id="wxVal" min="0" step="1" value="1" style="width:56px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">
+        <span id="wxValUnit" style="color:var(--text3);font-size:10px">stanowisk mniej</span>
+        <button class="btn btn-ghost btn-sm" onclick="capAddWyjatek()">+ Dodaj</button>
+      </div>
+      <div id="capCal"></div>
+    </div>
+
+    <!-- Ustawienia gniazd i kalendarza -->
+    <details style="margin-top:14px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:0 14px">
+      <summary style="cursor:pointer;padding:12px 0;font-size:12px;font-weight:700;color:var(--text2)">⚙️ Ustawienia gniazd i kalendarza — stanowiska, zmiany, wydajność</summary>
+      <div id="capSettings" style="padding-bottom:14px"></div>
+    </details>
+  </section>
+
+  <!-- Obciążenie produkcji -->
+  <section class="adv-pane" id="advPane-load">
+    <div class="adv-pane-head">
+      <div class="adv-pane-title">⚙️ Obciążenie produkcji</div>
+      <div class="adv-pane-sub">Wykorzystanie zasobów produkcyjnych rozłożone w czasie</div>
+    </div>
+    <div class="adv-empty">
+      <div class="adv-empty-ico">⚙️</div>
+      <div class="adv-empty-title">Obciążenie produkcji</div>
+      <div class="adv-empty-desc">Tutaj pojawi się rozkład obciążenia stanowisk w kolejnych tygodniach — ile godzin pracy przypada na każdy zasób względem jego dostępności, z wykryciem przeciążeń.</div>
+      <div class="adv-badge">⚙️ W przygotowaniu</div>
+    </div>
+  </section>
+
+  <!-- Priorytety produkcji -->
+  <section class="adv-pane" id="advPane-priority">
+    <div class="adv-pane-head">
+      <div class="adv-pane-title">🎯 Priorytety produkcji</div>
+      <div class="adv-pane-sub">Kolejność realizacji zleceń wg priorytetu i terminów</div>
+    </div>
+    <div class="adv-empty">
+      <div class="adv-empty-ico">🎯</div>
+      <div class="adv-empty-title">Priorytety produkcji</div>
+      <div class="adv-empty-desc">Tutaj pojawi się lista zleceń uszeregowana według priorytetu, terminu wymaganego i pokrycia materiałowego — co uruchomić w pierwszej kolejności.</div>
+      <div class="adv-badge">⚙️ W przygotowaniu</div>
+    </div>
+  </section>
+
+  <!-- Rozkład projektów w czasie -->
+  <section class="adv-pane" id="advPane-timeline">
+    <div class="adv-pane-head">
+      <div class="adv-pane-title">🗓️ Rozkład projektów w czasie</div>
+      <div class="adv-pane-sub">Oś czasu / wykres Gantta zleceń i projektów</div>
+    </div>
+    <div class="adv-empty">
+      <div class="adv-empty-ico">🗓️</div>
+      <div class="adv-empty-title">Rozkład projektów w czasie</div>
+      <div class="adv-empty-desc">Tutaj pojawi się oś czasu projektów (wykres Gantta) pokazująca rozłożenie zleceń, ich start, termin i wzajemne nakładanie się w czasie.</div>
+      <div class="adv-badge">⚙️ W przygotowaniu</div>
+    </div>
+  </section>
+
 </div>
 
 <!-- TOAST -->
@@ -1981,6 +2163,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeDetail();
     if (document.getElementById('helpModal').style.display !== 'none') toggleHelp();
+    if (document.getElementById('advancedPanel').style.display !== 'none') toggleAdvanced();
     return;
   }
 
@@ -2051,14 +2234,425 @@ function toggleSummary() {
       showToast('Brak danych — najpierw pobierz materiały', true);
       return;
     }
-    // zamknij ewentualnie otwartą Analizę dostawcy
+    // zamknij ewentualnie otwarte nakładki (Analiza dostawcy / Zaawansowane)
     document.getElementById('supplierPanel').style.display = 'none';
     const bsup = document.getElementById('btnSupplier'); if (bsup) { bsup.style.background = ''; bsup.style.color = ''; }
+    document.getElementById('advancedPanel').style.display = 'none';
+    const badv = document.getElementById('btnAdvanced'); if (badv) { badv.style.background = ''; badv.style.color = ''; }
     panel.style.display = 'block';
     document.getElementById('btnSummary').style.background = 'rgba(37,99,235,.3)';
     document.getElementById('btnSummary').style.color = '#93C5FD';
     buildSummary(filteredMaterials);
   }
+}
+
+// ── Panel "Zaawansowane" — scaffold pod planowanie produkcji ──
+function toggleAdvanced() {
+  const panel = document.getElementById('advancedPanel');
+  const btn   = document.getElementById('btnAdvanced');
+  const open  = panel.style.display !== 'none';
+  if (open) {
+    panel.style.display = 'none';
+    btn.style.background = ''; btn.style.color = '';
+  } else {
+    // zamknij pozostałe nakładki (wzajemnie wykluczające się)
+    for (const id of ['summaryPanel', 'supplierPanel']) document.getElementById(id).style.display = 'none';
+    for (const id of ['btnSummary', 'btnSupplier']) { const b = document.getElementById(id); if (b) { b.style.background = ''; b.style.color = ''; } }
+    panel.style.display = 'block';
+    btn.style.background = 'rgba(37,99,235,.3)'; btn.style.color = '#93C5FD';
+    if (!capData) loadCapacity();
+  }
+}
+
+function advSwitchTab(name) {
+  document.querySelectorAll('#advancedPanel .adv-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('#advancedPanel .adv-pane').forEach(p => p.classList.toggle('active', p.id === 'advPane-' + name));
+  if (name === 'capacity' && !capData) loadCapacity();
+}
+
+// ── Capacity — zdolności produkcyjne (gniazda × tygodnie) ─────
+let capData = null;     // { weeks:[], gniazda:[], load:{ gniazdo:{ tydzień:{maszyna,praca} } } }
+let capConfig = null;   // { kalendarz, gniazda:[], wyjatki:[] }
+
+async function loadCapacity(force) {
+  const status = document.getElementById('capStatus');
+  const weeks  = document.getElementById('capWeeks')?.value || 12;
+  if (status) status.textContent = 'Ładowanie z bazy…';
+  try {
+    const [cfgR, loadR] = await Promise.all([
+      capConfig ? Promise.resolve(null) : fetch('/api/capacity/config').then(r => r.json()),
+      fetch('/api/capacity?weeks=' + encodeURIComponent(weeks) + (force ? '&_=' + Date.now() : '')).then(r => r.json()),
+    ]);
+    if (cfgR) { if (!cfgR.ok) throw new Error(cfgR.error || 'config'); capConfig = cfgR.config; capMigrateConfig(); capInitForm(); }
+    if (!loadR.ok) throw new Error(loadR.error || 'load');
+    capData = loadR;
+    renderCapacity();
+    renderCapCalendar();
+    renderCapSettings();
+    if (status) status.textContent = `${capData.weeks.length} tyg · ${capData.gniazda.length} gniazd · dane z bazy: ${new Date(capData.generatedAt).toLocaleString('pl-PL')}`;
+  } catch (e) {
+    if (status) status.textContent = '';
+    showToast('Capacity: ' + e.message, true);
+  }
+}
+
+function capGniazdo(id) { return capConfig.gniazda.find(g => g.id === id); }
+
+function capWeekLoad(g, wk) {
+  const cell = capData.load[g] && capData.load[g][wk];
+  if (!cell) return 0;
+  const gn = capGniazdo(g);
+  return (gn && gn.podstawaMocy === 'praca') ? cell.praca : cell.maszyna;
+}
+
+// Poniedziałek tygodnia ISO (year=rok kalendarzowy, week=numer ISO)
+function capMondayOfIsoWeek(year, week) {
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const jan4Dow = (jan4.getUTCDay() + 6) % 7;
+  const monday = new Date(jan4);
+  monday.setUTCDate(jan4.getUTCDate() - jan4Dow + (week - 1) * 7);
+  return monday;
+}
+
+// Dostępne godziny gniazda w danym tygodniu (kalendarz bazowy − wyjątki)
+// Suma stanowisko-zmian gniazda (Σ stanowisk na wszystkich zmianach)
+function capSlots(gn) {
+  return (gn.stanowiskaNaZmianie || []).reduce((s, n) => s + (Number(n) || 0), 0);
+}
+
+// Migracja/normalizacja: zapewnij stanowiskaNaZmianie o długości = liczba zmian.
+// Stary format (skalar `stanowiska`) → każda zmiana tyle samo stanowisk (zachowuje Σ = stanowiska×zmiany).
+function capMigrateConfig() {
+  const z = Math.max(1, capConfig.kalendarz.zmiany || 1);
+  for (const g of capConfig.gniazda) {
+    if (!Array.isArray(g.stanowiskaNaZmianie)) {
+      const base = Number(g.stanowiska) || 0;
+      g.stanowiskaNaZmianie = Array.from({ length: z }, () => base);
+      delete g.stanowiska;
+    }
+    const a = g.stanowiskaNaZmianie;
+    while (a.length < z) a.push(0);
+    if (a.length > z) a.length = z;
+    for (let i = 0; i < a.length; i++) a[i] = Math.max(0, Number(a[i]) || 0);
+  }
+}
+
+// Bazowe godziny gniazda w typowym tygodniu (bez wyjątków)
+function capBaseWeekHours(gn) {
+  const cal = capConfig.kalendarz;
+  if (gn.trybMocy === 'godziny') return Number(gn.godzinyTydz) || 0;
+  const effShift = Math.max(0, cal.hZmiana - (cal.przerwy || 0));   // godziny jednej zmiany
+  return capSlots(gn) * effShift * (gn.wydajnosc || 1) * (cal.dniRobocze.length || 0);
+}
+
+function capWeekAvailable(g, wk) {
+  const gn = capGniazdo(g); if (!gn) return 0;
+  const cal = capConfig.kalendarz;
+  const [ys, ws] = wk.split('-W');
+  const monday = capMondayOfIsoWeek(parseInt(ys, 10), parseInt(ws, 10));
+  const effShift = Math.max(0, cal.hZmiana - (cal.przerwy || 0));   // godziny jednej zmiany
+  const nDni   = cal.dniRobocze.length || 1;
+  const manual = gn.trybMocy === 'godziny';
+  const slots  = capSlots(gn);                                       // Σ stanowisko-zmian
+  const nominalDay = manual ? ((Number(gn.godzinyTydz) || 0) / nDni)
+                            : (slots * effShift * (gn.wydajnosc || 1));
+  let total = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday.getTime() + i * 86400000);
+    const dow = ((d.getUTCDay() + 6) % 7) + 1;          // 1=pon … 7=nd
+    if (!cal.dniRobocze.includes(dow)) continue;
+    const ds = d.toISOString().slice(0, 10);
+    let zero = false, stanMniej = 0, hMniej = 0;
+    for (const wx of (capConfig.wyjatki || [])) {
+      if (wx.gniazdo !== '*' && wx.gniazdo !== g) continue;
+      if (ds < wx.od || ds > wx.do) continue;
+      const val = Number(wx.wartosc) || 0;
+      if (wx.typ === 'swieto') zero = true;
+      else if (wx.typ === 'przeglad') hMniej += val;     // godz. mniej / dzień
+      else stanMniej += val;                             // urlop → tyle mniej stanowisko-zmian
+    }
+    if (zero) continue;
+    let dayH = nominalDay;
+    if (stanMniej > 0) {                                  // urlop: zabierz stanowisko-zmiany
+      if (manual) { if (slots > 0) dayH *= Math.max(0, 1 - stanMniej / slots); }
+      else { dayH = Math.max(0, slots - stanMniej) * effShift * (gn.wydajnosc || 1); }
+    }
+    total += Math.max(0, dayH - hMniej);
+  }
+  return total;
+}
+
+function capUtilColor(u) {
+  if (u < 80)  return ['rgba(16,185,129,.18)', '#34D399'];
+  if (u < 100) return ['rgba(245,158,11,.22)', '#FBBF24'];
+  if (u < 115) return ['rgba(239,68,68,.25)', '#F87171'];
+  return ['#B91C1C', '#fff'];
+}
+
+function renderCapacity() {
+  const weeks = capData.weeks, gn = capData.gniazda;
+  let sumAvail = 0, sumLoad = 0, over = 0;
+  for (const g of gn) for (const wk of weeks) {
+    const a = capWeekAvailable(g, wk), l = capWeekLoad(g, wk);
+    sumAvail += a; sumLoad += l;
+    if (a > 0 && l / a > 1) over++;
+  }
+  const util = sumAvail > 0 ? Math.round(sumLoad / sumAvail * 100) : 0;
+  const kpi = [
+    ['🏭', 'Gniazda', gn.length],
+    ['🗓️', 'Dostępne (okno)', Math.round(sumAvail).toLocaleString('pl-PL') + ' h'],
+    ['📈', 'Obciążenie (okno)', Math.round(sumLoad).toLocaleString('pl-PL') + ' h'],
+    ['⚡', 'Wykorzystanie', util + '%'],
+    ['🔴', 'Wąskie gardła', over + ' (gn.×tydz)'],
+  ];
+  document.getElementById('capKpi').innerHTML = kpi.map(([ic, lbl, val], i) =>
+    `<div class="adv-tile"><span class="adv-tile-ico">${ic}</span><span class="adv-tile-lbl">${lbl}</span><span class="adv-tile-val"${i === 3 && util > 100 ? ' style="color:var(--red)"' : ''}>${val}</span></div>`
+  ).join('');
+
+  const colW = 46;
+  let h = `<div style="display:grid;grid-template-columns:118px repeat(${weeks.length},${colW}px);gap:3px;align-items:center">`;
+  h += `<div style="font-size:10px;color:var(--text3)">Gniazdo</div>`;
+  for (const wk of weeks) h += `<div style="text-align:center;font-size:9px;color:var(--text3)">${wk.replace('-', ' ')}</div>`;
+  for (const g of gn) {
+    const gnObj = capGniazdo(g);
+    h += `<div style="font-size:11px;font-weight:600;color:var(--text2)" title="${gnObj?.nazwa || g} (${gnObj?.podstawaMocy || ''}) — ${Math.round(capBaseWeekHours(gnObj))} h/tydz bazowo">${g} <span style="color:var(--text3);font-weight:400">·${gnObj ? capSlots(gnObj) : 0}</span></div>`;
+    for (const wk of weeks) {
+      const a = capWeekAvailable(g, wk), l = capWeekLoad(g, wk);
+      const u = a > 0 ? Math.round(l / a * 100) : (l > 0 ? 999 : 0);
+      const [bg, fg] = capUtilColor(u);
+      const tip = `${g} ${wk}: obciążenie ${Math.round(l)} h / dostępne ${Math.round(a)} h`;
+      h += `<div class="cap-cell" onclick="capDrill('${g}','${wk}')" title="${tip} — kliknij po operacje" style="text-align:center;padding:5px 0;font-size:10px;font-weight:600;border-radius:3px;background:${bg};color:${fg}">${a > 0 ? u : (l > 0 ? '∞' : '–')}</div>`;
+    }
+  }
+  h += `</div>`;
+  document.getElementById('capHeat').innerHTML = h;
+}
+
+function capInitForm() {
+  const sel = document.getElementById('wxGniazdo');
+  if (!sel) return;
+  sel.innerHTML = `<option value="*">Wszystkie</option>` + capConfig.gniazda.map(g => `<option value="${g.id}">${g.id} — ${g.nazwa}</option>`).join('');
+  capWxTypChange();
+}
+
+function capWxTypChange() {
+  const typ  = document.getElementById('wxTyp').value;
+  const unit = document.getElementById('wxValUnit');
+  const val  = document.getElementById('wxVal');
+  if (typ === 'swieto')       { val.style.display = 'none'; unit.textContent = '(0 h w całym zakresie)'; }
+  else if (typ === 'przeglad'){ val.style.display = '';     unit.textContent = 'godz. mniej / dzień'; }
+  else                        { val.style.display = '';     unit.textContent = 'stanowisk mniej'; }
+}
+
+function renderCapCalendar() {
+  const list = capConfig.wyjatki || [];
+  const el = document.getElementById('capCal');
+  if (!list.length) {
+    el.innerHTML = `<div style="font-size:11px;color:var(--text3)">Brak wyjątków — pełna dostępność wg kalendarza bazowego (${capConfig.kalendarz.zmiany} zm. × ${capConfig.kalendarz.hZmiana} h, dni ${capConfig.kalendarz.dniRobocze.join(',')}).</div>`;
+    return;
+  }
+  const ikona = { urlop: '🏖️', swieto: '📅', przeglad: '🔧' };
+  el.innerHTML = list.map((wx, i) => {
+    const val = wx.typ === 'swieto' ? '0 h' : wx.typ === 'przeglad' ? `−${wx.wartosc} h/dz` : `−${wx.wartosc} stan.`;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--border);font-size:12px">
+      <span>${ikona[wx.typ] || '•'}</span>
+      <span style="font-weight:600;width:64px">${wx.gniazdo === '*' ? 'Wszystkie' : wx.gniazdo}</span>
+      <span style="color:var(--text2);width:180px">${wx.od} → ${wx.do}</span>
+      <span style="color:var(--text2);flex:1">${wx.typ}</span>
+      <span style="color:var(--text2);width:90px;text-align:right">${val}</span>
+      <button class="btn btn-ghost btn-sm" style="padding:2px 7px" onclick="capRemoveWyjatek(${i})" title="Usuń">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function capAddWyjatek() {
+  const g   = document.getElementById('wxGniazdo').value;
+  const typ = document.getElementById('wxTyp').value;
+  const od  = document.getElementById('wxOd').value;
+  const doo = document.getElementById('wxDo').value || od;
+  const val = Math.max(0, parseInt(document.getElementById('wxVal').value, 10) || 0);
+  if (!od) { showToast('Podaj datę „od"', true); return; }
+  if (od > doo) { showToast('Zakres dat odwrócony', true); return; }
+  if (typ !== 'swieto' && val <= 0) { showToast('Podaj wartość > 0', true); return; }
+  capConfig.wyjatki.push({ od, do: doo, gniazdo: g, typ, wartosc: typ === 'swieto' ? 0 : val });
+  await capSaveConfig();
+  renderCapCalendar(); renderCapacity();
+}
+
+async function capRemoveWyjatek(i) {
+  capConfig.wyjatki.splice(i, 1);
+  await capSaveConfig();
+  renderCapCalendar(); renderCapacity();
+}
+
+async function capSaveConfig() {
+  try {
+    const r = await fetch('/api/capacity/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(capConfig),
+    }).then(r => r.json());
+    if (!r.ok) throw new Error(r.error || 'zapis');
+    const s = document.getElementById('capCalSaved'); if (s) { s.textContent = '✓ zapisano'; setTimeout(() => s.textContent = '', 2000); }
+  } catch (e) { showToast('Zapis konfiguracji: ' + e.message, true); }
+}
+
+// ── Drill-down: operacje gniazda w tygodniu (klik komórki) ────
+async function capDrill(g, wk) {
+  const box = document.getElementById('capDrill');
+  box.style.display = 'block';
+  box.innerHTML = `<div style="font-size:12px;color:var(--text3)">Ładowanie operacji ${g} / ${wk}…</div>`;
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  try {
+    const d = await fetch(`/api/capacity/ops?gniazdo=${encodeURIComponent(g)}&week=${encodeURIComponent(wk)}`).then(r => r.json());
+    if (!d.ok) throw new Error(d.error || 'błąd');
+    const esc = s => (s == null ? '' : String(s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])));
+    const basisH = d.basis === 'praca' ? 'hPrac' : 'hMasz';
+    const rows = d.ops.map(o => `<tr style="border-top:1px solid var(--border)">
+      <td style="padding:4px 8px;font-family:var(--font-mono);font-size:11px;color:var(--blue);white-space:nowrap">${esc(o.zlecenie)}</td>
+      <td style="padding:4px 8px;font-size:11px;color:var(--text3);white-space:nowrap">${esc(o.nrPrzew)}/${o.lp}</td>
+      <td style="padding:4px 8px;font-size:11px;white-space:nowrap">${esc(o.kodOper)} <span style="color:var(--text3)">${esc(o.grupaSt)}</span></td>
+      <td style="padding:4px 8px;font-size:11px;color:var(--text2);max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.opis || '')}</td>
+      <td style="padding:4px 8px;text-align:right;font-size:11px">${o.zaawans}%</td>
+      <td style="padding:4px 8px;text-align:right;font-size:11px;font-weight:700">${o[basisH].toFixed(1)}</td>
+      <td style="padding:4px 8px;font-size:10px;color:var(--text3);white-space:nowrap">${esc(o.start || '')}</td>
+    </tr>`).join('');
+    const nazwa = capGniazdo(g)?.nazwa || g;
+    box.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${g} <span style="color:var(--text3);font-weight:400">${nazwa}</span> · ${wk}</div>
+        <span style="font-size:11px;color:var(--text2)">${d.count} operacji · Σ ${d.sumH} h <span style="color:var(--text3)">(${d.basis})</span>${d.count > d.shown ? ' · pokazano ' + d.shown : ''}</span>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('capDrill').style.display='none'">✕ Zamknij</button>
+      </div>
+      <div style="overflow:auto;max-height:360px"><table style="width:100%;border-collapse:collapse">
+        <thead><tr style="color:var(--text3);font-size:10px;text-align:left">
+          <th style="padding:5px 8px">Zlecenie</th><th style="padding:5px 8px">Przew/LP</th><th style="padding:5px 8px">Operacja</th><th style="padding:5px 8px">Opis</th><th style="padding:5px 8px;text-align:right">Zaaw.</th><th style="padding:5px 8px;text-align:right">Godz.</th><th style="padding:5px 8px">Start</th>
+        </tr></thead><tbody>${rows || '<tr><td colspan="7" style="padding:10px;color:var(--text3);font-size:12px">Brak operacji w tym tygodniu.</td></tr>'}</tbody>
+      </table></div>`;
+  } catch (e) {
+    box.innerHTML = `<div style="font-size:12px;color:var(--red)">Błąd drill-down: ${e.message}</div>`;
+  }
+}
+
+// ── Ustawienia gniazd i kalendarza (edycja z UI) ──────────────
+function renderCapSettings() {
+  const el = document.getElementById('capSettings');
+  if (!el || !capConfig) return;
+  const cal = capConfig.kalendarz;
+  const dni = [[1, 'Pon'], [2, 'Wt'], [3, 'Śr'], [4, 'Czw'], [5, 'Pt'], [6, 'Sob'], [7, 'Nd']];
+  const dniHtml = dni.map(([n, l]) => `<label style="margin-right:8px"><input type="checkbox" class="setDni" value="${n}" ${cal.dniRobocze.includes(n) ? 'checked' : ''} onchange="capRecalcSettingsHours()"> ${l}</label>`).join('');
+  const zmiany = Math.max(1, cal.zmiany || 1);
+  const calHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:14px;font-size:11px;color:var(--text2)">
+      <label>Liczba zmian <input type="number" id="setZmiany" class="cap-inp" min="1" max="3" step="1" value="${zmiany}" style="width:48px" onchange="capSettingsZmianyChange()"></label>
+      <label>Godz./zmianę <input type="number" id="setHZmiana" class="cap-inp" min="1" max="12" step="0.5" value="${cal.hZmiana}" style="width:56px" oninput="capRecalcSettingsHours()"></label>
+      <label>Przerwy [h/zm.] <input type="number" id="setPrzerwy" class="cap-inp" min="0" max="4" step="0.25" value="${cal.przerwy}" style="width:56px" oninput="capRecalcSettingsHours()"></label>
+      <span>Dni robocze: ${dniHtml}</span>
+    </div>`;
+  const zmHead = Array.from({ length: zmiany }, (_, i) => `Z${i + 1}`).join(' ');
+  const gnHtml = capConfig.gniazda.map(g => {
+    const manual = g.trybMocy === 'godziny';
+    const arr = g.stanowiskaNaZmianie || [];
+    const stanInputs = Array.from({ length: zmiany }, (_, i) =>
+      `<input type="number" class="cap-inp" min="0" max="99" step="1" value="${arr[i] != null ? arr[i] : 0}" data-gid="${g.id}" data-f="stanZm" data-zm="${i}" style="width:38px" title="${g.id} — zmiana ${i + 1}" oninput="capRecalcSettingsHours()">`
+    ).join(' ');
+    const hCell = manual
+      ? `<input type="number" class="cap-inp" min="0" step="1" value="${g.godzinyTydz != null ? g.godzinyTydz : ''}" data-gid="${g.id}" data-f="godzinyTydz" style="width:64px;text-align:right" oninput="capRecalcSettingsHours()"> h`
+      : `<span id="capH-${g.id}">–</span> h`;
+    return `<tr style="border-top:1px solid var(--border)">
+      <td style="padding:4px 8px;font-weight:600;font-size:11px">${g.id}</td>
+      <td style="padding:4px 8px;font-size:11px;color:var(--text2)">${g.nazwa}</td>
+      <td style="padding:4px 8px"><select class="cap-inp" data-gid="${g.id}" data-f="trybMocy" onchange="capSettingsTrybChange()" title="stanowiska = liczone z kalendarza; godziny = wpisane wprost">
+        <option value="stanowiska" ${!manual ? 'selected' : ''}>stanowiska</option>
+        <option value="godziny" ${manual ? 'selected' : ''}>godziny</option></select></td>
+      <td style="padding:4px 8px;white-space:nowrap">${stanInputs}</td>
+      <td style="padding:4px 8px"><select class="cap-inp" data-gid="${g.id}" data-f="podstawaMocy">
+        <option value="maszyna" ${g.podstawaMocy === 'maszyna' ? 'selected' : ''}>maszyna</option>
+        <option value="praca" ${g.podstawaMocy === 'praca' ? 'selected' : ''}>praca</option></select></td>
+      <td style="padding:4px 8px"><input type="number" class="cap-inp" min="0.1" max="1" step="0.05" value="${g.wydajnosc}" data-gid="${g.id}" data-f="wydajnosc" style="width:58px${manual ? ';opacity:.4' : ''}" ${manual ? 'disabled' : ''} oninput="capRecalcSettingsHours()"></td>
+      <td style="padding:4px 8px;text-align:right;font-size:11px;color:var(--green);font-weight:600">${hCell}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = calHtml + `<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="color:var(--text3);font-size:10px;text-align:left"><th style="padding:4px 8px">Gniazdo</th><th style="padding:4px 8px">Nazwa</th><th style="padding:4px 8px">Tryb</th><th style="padding:4px 8px">Stanowiska/zmiana <span style="color:var(--text2)">${zmHead}</span></th><th style="padding:4px 8px">Podstawa mocy</th><th style="padding:4px 8px">Wydajność</th><th style="padding:4px 8px;text-align:right">Dostępne h/tydz</th></tr></thead>
+      <tbody>${gnHtml}</tbody></table>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="capSaveSettings()">💾 Zapisz ustawienia</button>
+        <span style="font-size:11px;color:var(--text2)">Σ dostępne: <span id="capHTotal" style="color:var(--green);font-weight:700">–</span> h/tydz (bazowo, bez wyjątków)</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:6px">Kolumny Z1/Z2/Z3 = ile stanowisk pracuje na danej zmianie (możesz mieć różnie na każdej). Tryb „godziny" = wpisujesz h/tydz wprost; stanowiska są wtedy odniesieniem dla urlopów.</div>`;
+  capRecalcSettingsHours();
+}
+
+// Przelicza „dostępne h/tydz" na żywo z aktualnych wartości formularza
+function capRecalcSettingsHours() {
+  const hZmiana = parseFloat(document.getElementById('setHZmiana').value) || 0;
+  const przerwy = parseFloat(document.getElementById('setPrzerwy').value) || 0;
+  const nDni    = document.querySelectorAll('#capSettings .setDni:checked').length;
+  const effShift = Math.max(0, hZmiana - przerwy);              // godziny jednej zmiany
+  let total = 0;
+  for (const g of capConfig.gniazda) {
+    const trybInp = document.querySelector(`#capSettings [data-gid="${g.id}"][data-f="trybMocy"]`);
+    const manual = trybInp ? trybInp.value === 'godziny' : g.trybMocy === 'godziny';
+    let h;
+    if (manual) {
+      h = parseFloat(document.querySelector(`#capSettings [data-gid="${g.id}"][data-f="godzinyTydz"]`)?.value) || 0;
+    } else {
+      const slots = [...document.querySelectorAll(`#capSettings [data-gid="${g.id}"][data-f="stanZm"]`)]
+        .reduce((s, inp) => s + (parseFloat(inp.value) || 0), 0);   // Σ stanowisko-zmian
+      const wyd  = parseFloat(document.querySelector(`#capSettings [data-gid="${g.id}"][data-f="wydajnosc"]`)?.value) || 1;
+      h = slots * effShift * wyd * nDni;
+      const span = document.getElementById('capH-' + g.id);
+      if (span) span.textContent = Math.round(h).toLocaleString('pl-PL');
+    }
+    total += h;
+  }
+  const t = document.getElementById('capHTotal');
+  if (t) t.textContent = Math.round(total).toLocaleString('pl-PL');
+}
+
+// Wczytuje aktualne wartości formularza do capConfig (bez zapisu na serwer)
+function capSyncSettingsToConfig() {
+  const cal = capConfig.kalendarz;
+  const z  = parseInt(document.getElementById('setZmiany').value, 10); if (!isNaN(z))  cal.zmiany  = Math.max(1, Math.min(3, z));
+  const hz = parseFloat(document.getElementById('setHZmiana').value);  if (!isNaN(hz)) cal.hZmiana = Math.max(0.5, hz);
+  const pr = parseFloat(document.getElementById('setPrzerwy').value);  if (!isNaN(pr)) cal.przerwy = Math.max(0, pr);
+  const dni = [...document.querySelectorAll('#capSettings .setDni:checked')].map(c => parseInt(c.value, 10)).sort();
+  if (dni.length) cal.dniRobocze = dni;
+  for (const inp of document.querySelectorAll('#capSettings [data-gid]')) {
+    const g = capGniazdo(inp.dataset.gid); if (!g) continue;
+    const f = inp.dataset.f;
+    if (f === 'podstawaMocy') g.podstawaMocy = inp.value;
+    else if (f === 'trybMocy') g.trybMocy = inp.value;
+    else if (f === 'wydajnosc')   { const w = parseFloat(inp.value); if (!isNaN(w)) g.wydajnosc = Math.min(1, Math.max(0.1, w)); }
+    else if (f === 'godzinyTydz') { const h = parseFloat(inp.value); if (!isNaN(h)) g.godzinyTydz = Math.max(0, h); }
+    else if (f === 'stanZm') {
+      const zm = parseInt(inp.dataset.zm, 10), v = parseInt(inp.value, 10);
+      if (!isNaN(zm) && !isNaN(v)) { if (!Array.isArray(g.stanowiskaNaZmianie)) g.stanowiskaNaZmianie = []; g.stanowiskaNaZmianie[zm] = Math.max(0, v); }
+    }
+  }
+}
+
+// Zmiana liczby zmian — przeskaluj tablice stanowisk i przerysuj
+function capSettingsZmianyChange() {
+  capSyncSettingsToConfig();
+  capMigrateConfig();
+  renderCapSettings();
+}
+
+// Zmiana trybu (stanowiska↔godziny) — prefill godzin wartością wyliczoną i przerysuj
+function capSettingsTrybChange() {
+  capSyncSettingsToConfig();
+  for (const g of capConfig.gniazda) {
+    if (g.trybMocy === 'godziny' && g.godzinyTydz == null) g.godzinyTydz = Math.round(capBaseWeekHours(g));
+  }
+  renderCapSettings();
+}
+
+async function capSaveSettings() {
+  capSyncSettingsToConfig();
+  if (!capConfig.kalendarz.dniRobocze.length) { showToast('Zaznacz min. 1 dzień roboczy', true); return; }
+  await capSaveConfig();
+  renderCapacity();
+  showToast('Ustawienia zapisane');
 }
 
 // ── Analiza dostawcy — należności do zapłaty wg dostawcy ──────
@@ -2079,6 +2673,8 @@ async function toggleSupplier() {
   // zamknij ewentualnie otwarte Podsumowanie
   document.getElementById('summaryPanel').style.display = 'none';
   const bs = document.getElementById('btnSummary'); if (bs) { bs.style.background = ''; bs.style.color = ''; }
+  document.getElementById('advancedPanel').style.display = 'none';
+  const ba = document.getElementById('btnAdvanced'); if (ba) { ba.style.background = ''; ba.style.color = ''; }
   panel.style.display = 'block';
   if (btn) { btn.style.background = 'rgba(37,99,235,.3)'; btn.style.color = '#93C5FD'; }
   document.getElementById('supPanelSub').textContent = 'Pobieram zamówienia własne…';

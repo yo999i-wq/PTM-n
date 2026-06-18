@@ -6,7 +6,7 @@
 module.exports = {
 
   // --- PORT SERWERA ---
-  port: 5300,
+  port: 5350,
 
   // --- POLACZENIE Z FIREBIRDEM (Rekord) ---
   firebird: {

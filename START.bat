@@ -17,7 +17,7 @@ if not exist "node_modules\node-firebird" (
 echo.
 echo =====================================================
 echo  MRP Browser - Europa Systems
-echo  http://localhost:5300
+echo  http://localhost:5350
 echo =====================================================
 echo  Ctrl+C aby zatrzymac serwer
 echo.
