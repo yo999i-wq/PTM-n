@@ -985,15 +985,32 @@ body.light .adv-tab:hover{background:rgba(0,0,0,.05)}
 
   <!-- Priorytety produkcji -->
   <section class="adv-pane" id="advPane-priority">
-    <div class="adv-pane-head">
-      <div class="adv-pane-title">🎯 Priorytety produkcji</div>
-      <div class="adv-pane-sub">Kolejność realizacji zleceń wg priorytetu i terminów</div>
+    <div class="adv-pane-head" style="display:flex;align-items:flex-end;gap:12px">
+      <div>
+        <div class="adv-pane-title">🎯 Priorytety produkcji</div>
+        <div class="adv-pane-sub">Wyszukaj zlecenia „W produkcji" i ustaw ręcznie kolejkę (zapis lokalny, ERP tylko do odczytu)</div>
+      </div>
+      <div style="flex:1"></div>
+      <span id="pqSaved" style="font-size:10px;color:var(--green)"></span>
+      <button class="btn btn-primary btn-sm" onclick="pqSave()">💾 Zapisz kolejkę</button>
     </div>
-    <div class="adv-empty">
-      <div class="adv-empty-ico">🎯</div>
-      <div class="adv-empty-title">Priorytety produkcji</div>
-      <div class="adv-empty-desc">Tutaj pojawi się lista zleceń uszeregowana według priorytetu, terminu wymaganego i pokrycia materiałowego — co uruchomić w pierwszej kolejności.</div>
-      <div class="adv-badge">⚙️ W przygotowaniu</div>
+
+    <!-- Wyszukiwarka -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;position:relative">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">Dodaj zlecenie do kolejki</div>
+      <input id="pqSearch" class="cap-inp" style="width:100%;padding:7px 10px;font-size:12px" placeholder="Szukaj po numerze (00504 lub PRO-2024-00504) albo nazwie/kliencie…" oninput="pqOnSearch()" onfocus="pqOnSearch()" autocomplete="off">
+      <div id="pqResults" style="display:none;position:absolute;left:14px;right:14px;z-index:30;background:var(--bg3);border:1px solid var(--border);border-radius:8px;max-height:320px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.5);margin-top:4px"></div>
+    </div>
+
+    <!-- Kolejka -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:12px;font-weight:700;color:var(--text2)">🎯 Kolejka produkcji</span>
+        <span id="pqCount" style="font-size:11px;color:var(--text3)"></span>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost btn-sm" onclick="pqLoadBraki(true)" title="Przelicz wartość braków materiałowych (świeże z bazy)">🟥 Przelicz braki</button>
+      </div>
+      <div id="pqList"></div>
     </div>
   </section>
 
@@ -2268,6 +2285,7 @@ function advSwitchTab(name) {
   document.querySelectorAll('#advancedPanel .adv-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('#advancedPanel .adv-pane').forEach(p => p.classList.toggle('active', p.id === 'advPane-' + name));
   if (name === 'capacity' && !capData) loadCapacity();
+  if (name === 'priority' && !pqLoaded) pqLoad();
 }
 
 // ── Capacity — zdolności produkcyjne (gniazda × tygodnie) ─────
@@ -2653,6 +2671,147 @@ async function capSaveSettings() {
   await capSaveConfig();
   renderCapacity();
   showToast('Ustawienia zapisane');
+}
+
+// ── Priorytety produkcji — ręczna kolejka zleceń „W produkcji" ─
+let pqQueue = [];
+let pqLoaded = false;
+let _pqSearchTimer = null;
+let _pqBrakiInflight = false;
+
+async function pqLoad() {
+  pqLoaded = true;
+  try {
+    const d = await fetch('/api/prod-queue').then(r => r.json());
+    pqQueue = (d.items || []).slice();
+  } catch (e) { pqQueue = []; showToast('Kolejka: ' + e.message, true); }
+  pqRender();
+  pqLoadBraki();
+}
+
+function pqOnSearch() {
+  clearTimeout(_pqSearchTimer);
+  const q = document.getElementById('pqSearch').value.trim();
+  if (q.length < 2) { document.getElementById('pqResults').style.display = 'none'; return; }
+  _pqSearchTimer = setTimeout(() => pqDoSearch(q), 250);
+}
+
+async function pqDoSearch(q) {
+  const box = document.getElementById('pqResults');
+  box.style.display = 'block';
+  box.innerHTML = `<div style="padding:10px;color:var(--text3);font-size:12px">Szukam…</div>`;
+  try {
+    const d = await fetch('/api/prod-orders?q=' + encodeURIComponent(q)).then(r => r.json());
+    if (!d.ok) throw new Error(d.error || 'błąd');
+    if (!d.rows.length) { box.innerHTML = `<div style="padding:10px;color:var(--text3);font-size:12px">Brak zleceń „W produkcji" dla „${q}".</div>`; return; }
+    const inQueue = new Set(pqQueue.map(it => it.nr));
+    box.innerHTML = d.rows.map(o => {
+      const has = inQueue.has(o.nr);
+      const j = encodeURIComponent(JSON.stringify(o));
+      return `<div ${has ? '' : `onclick="pqAdd('${j}')"`} style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);cursor:${has ? 'default' : 'pointer'};${has ? 'opacity:.45' : ''}">
+        <span style="font-family:var(--font-mono);font-size:12px;color:var(--teal);font-weight:700;white-space:nowrap">${o.nr}</span>
+        <span style="font-size:11px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.nazwa || ''}</span>
+        <span style="font-size:10px;color:var(--text3);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis">${o.klient || ''}</span>
+        <span style="font-size:10px;color:var(--text3);white-space:nowrap">${o.termin || '—'}</span>
+        <span style="font-size:10px;color:var(--text3)">${o.pozycje} poz.</span>
+        ${has ? '<span style="font-size:10px;color:var(--green)">✓</span>' : '<span style="font-size:14px;color:var(--blue)">＋</span>'}
+      </div>`;
+    }).join('');
+  } catch (e) {
+    box.innerHTML = `<div style="padding:10px;color:var(--red);font-size:12px">Błąd: ${e.message}</div>`;
+  }
+}
+
+function pqAdd(j) {
+  const o = JSON.parse(decodeURIComponent(j));
+  if (pqQueue.some(it => it.nr === o.nr)) return;
+  const maxP = pqQueue.reduce((m, it) => Math.max(m, it.priorytet || 0), 0);
+  pqQueue.push({ kat: o.kat, rok: o.rok, symb: o.symb, nr: o.nr, nazwa: o.nazwa, klient: o.klient, termin: o.termin, priorytet: maxP + 1, notatka: '' });
+  document.getElementById('pqResults').style.display = 'none';
+  document.getElementById('pqSearch').value = '';
+  pqRender();
+  pqLoadBraki();
+}
+
+function pqSorted() { return pqQueue.slice().sort((a, b) => (a.priorytet || 0) - (b.priorytet || 0)); }
+
+function pqRender() {
+  const el = document.getElementById('pqList');
+  document.getElementById('pqCount').textContent = pqQueue.length ? `${pqQueue.length} zleceń` : '';
+  if (!pqQueue.length) { el.innerHTML = `<div style="font-size:12px;color:var(--text3)">Kolejka pusta — dodaj zlecenia przez wyszukiwarkę powyżej.</div>`; return; }
+  const today = new Date().toISOString().slice(0, 10);
+  const esc = s => (s == null ? '' : String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c])));
+  const arr = pqSorted();
+  el.innerHTML = arr.map((it, i) => {
+    const overdue = it.termin && it.termin < today;
+    const b = it.brakiPln;
+    const brakiCell = (b === undefined) ? '<span style="color:var(--text3)" title="liczenie…">⏳</span>'
+      : (b === null) ? '<span style="color:var(--text3)" title="brak danych / błąd wyceny">—</span>'
+      : (b > 0) ? `<span style="color:var(--red);font-weight:700">${fmt(b, 0)} PLN</span>${it.brakiPoz ? ` <span style="color:var(--text3);font-size:9px">(${it.brakiPoz})</span>` : ''}`
+      : '<span style="color:var(--green);font-weight:700" title="brak niedoborów materiałowych — gotowe">✓ 0</span>';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border)">
+      <input type="number" class="cap-inp" style="width:46px;text-align:center" value="${it.priorytet}" min="1" onchange="pqSetPrio('${it.nr}', this.value)" title="Priorytet (mniejszy = wcześniej)">
+      <div style="display:flex;flex-direction:column;gap:1px">
+        <button class="btn btn-ghost btn-sm" style="padding:0 5px;line-height:1.25;font-size:9px" onclick="pqMove('${it.nr}',-1)" ${i === 0 ? 'disabled' : ''}>▲</button>
+        <button class="btn btn-ghost btn-sm" style="padding:0 5px;line-height:1.25;font-size:9px" onclick="pqMove('${it.nr}',1)" ${i === arr.length - 1 ? 'disabled' : ''}>▼</button>
+      </div>
+      <span style="font-family:var(--font-mono);font-size:12px;color:var(--teal);font-weight:700;white-space:nowrap;width:128px">${it.nr}</span>
+      <span style="font-size:11px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(it.nazwa)}">${esc(it.nazwa)}</span>
+      <span style="font-size:10px;color:var(--text3);width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.klient)}</span>
+      <span style="font-size:10px;width:86px;text-align:right;color:${overdue ? 'var(--red)' : 'var(--text2)'}">${it.termin || '—'}</span>
+      <span style="font-size:11px;width:120px;text-align:right;white-space:nowrap" title="Wartość braków materiałowych zlecenia (PLN)">${brakiCell}</span>
+      <input class="cap-inp" style="width:118px;font-size:10px" placeholder="notatka" value="${esc(it.notatka)}" onchange="pqSetNote('${it.nr}', this.value)">
+      <button class="btn btn-ghost btn-sm" style="padding:2px 7px" onclick="pqRemove('${it.nr}')" title="Usuń z kolejki">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function pqSetPrio(nr, val) { const it = pqQueue.find(x => x.nr === nr); if (it) { it.priorytet = Math.max(1, parseInt(val, 10) || 1); pqRender(); } }
+function pqSetNote(nr, val) { const it = pqQueue.find(x => x.nr === nr); if (it) it.notatka = val; }
+function pqRemove(nr) { pqQueue = pqQueue.filter(x => x.nr !== nr); pqRender(); }
+function pqMove(nr, dir) {
+  const sorted = pqSorted();
+  const idx = sorted.findIndex(x => x.nr === nr);
+  const j = idx + dir;
+  if (j < 0 || j >= sorted.length) return;
+  const a = sorted[idx], b = sorted[j];
+  const tmp = a.priorytet; a.priorytet = b.priorytet; b.priorytet = tmp;   // zamień priorytety sąsiadów
+  pqRender();
+}
+
+async function pqSave() {
+  try {
+    const r = await fetch('/api/prod-queue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: pqQueue }) }).then(r => r.json());
+    if (!r.ok) throw new Error(r.error || 'zapis');
+    const s = document.getElementById('pqSaved'); if (s) { s.textContent = '✓ zapisano (' + r.count + ')'; setTimeout(() => s.textContent = '', 2500); }
+  } catch (e) { showToast('Zapis kolejki: ' + e.message, true); }
+}
+
+// Dociąga wartość braków materiałowych [PLN] dla zleceń w kolejce
+async function pqLoadBraki(force) {
+  if (_pqBrakiInflight) return;
+  const todo = pqQueue.filter(it => force || it.brakiPln === undefined);
+  if (!todo.length) return;
+  _pqBrakiInflight = true;
+  if (force) for (const it of todo) it.brakiPln = undefined;   // ⏳ przy wymuszeniu
+  pqRender();
+  try {
+    const orders = todo.map(it => ({ kat: it.kat, rok: it.rok, symb: it.symb }));
+    const d = await fetch('/api/order-braki', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orders }) }).then(r => r.json());
+    if (d.ok && d.braki) {
+      for (const it of todo) {
+        const r = d.braki[it.nr];
+        if (!r || r.error) { it.brakiPln = null; it.brakiPoz = 0; }
+        else { it.brakiPln = r.brakiPln; it.brakiPoz = r.poz; }
+      }
+    } else for (const it of todo) it.brakiPln = null;
+  } catch (e) {
+    for (const it of todo) if (it.brakiPln === undefined) it.brakiPln = null;
+    showToast('Braki: ' + e.message, true);
+  } finally {
+    _pqBrakiInflight = false;
+    pqRender();
+  }
 }
 
 // ── Analiza dostawcy — należności do zapłaty wg dostawcy ──────

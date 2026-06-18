@@ -10,6 +10,7 @@ const os   = require('os');
 const config = require('./config');
 const { queryMaterials, queryMaterialsGlobal, queryMaterialDetail, queryOrdersAC, queryZamPositions, queryProPositions, queryPlanMaterials, queryPlanZlecenieMap, fbQuery, testConnection, detectIndeksColumn, getTableColumns, clearCache, cacheStats } = require('./src/fb-mrp');
 const { queryCapacityLoad, queryCapacityOps, readConfig: readCapConfig, writeConfig: writeCapConfig, clearCapacityCache } = require('./src/capacity');
+const { searchProdOrders, readQueue: readProdQueue, writeQueue: writeProdQueue, queryOrdersBraki } = require('./src/prodqueue');
 
 const PORT       = process.env.PORT || config.port || 5350;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -451,6 +452,66 @@ const server = http.createServer(async (req, res) => {
       console.error('[API] /api/capacity/ops error:', err.message);
       errResp(res, err.message, 400);
     }
+    return;
+  }
+
+  // ── API: Priorytety produkcji — wyszukiwarka zleceń „W produkcji" ──
+  // GET /api/prod-orders?q=00504  (lub PRO-2024-00504, lub nazwa)
+  if (urlPath === '/api/prod-orders' && method === 'GET') {
+    try {
+      const rows = await searchProdOrders(qs.q || '');
+      jsonResp(res, { ok: true, count: rows.length, rows });
+    } catch (err) {
+      console.error('[API] /api/prod-orders error:', err.message);
+      errResp(res, err.message);
+    }
+    return;
+  }
+
+  // ── API: Priorytety produkcji — kolejka (lokalny zapis) ──────
+  // GET  /api/prod-queue   → odczyt
+  // POST /api/prod-queue   → zapis (body = { items:[...] })
+  if (urlPath === '/api/prod-queue' && method === 'GET') {
+    try { jsonResp(res, { ok: true, ...readProdQueue() }); }
+    catch (err) { errResp(res, err.message); }
+    return;
+  }
+  if (urlPath === '/api/prod-queue' && method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const n = writeProdQueue(JSON.parse(body));
+        jsonResp(res, { ok: true, count: n });
+      } catch (err) {
+        console.error('[API] /api/prod-queue error:', err.message);
+        errResp(res, err.message, 400);
+      }
+    });
+    return;
+  }
+
+  // ── API: Wartość braków materiałowych per zlecenie ──────────
+  // POST /api/order-braki  body: { orders:[{kat,rok,symb}] }  → { braki:{ nr:{brakiPln,poz} } }
+  if (urlPath === '/api/order-braki' && method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    const abort = setTimeout(() => { try { errResp(res, 'Timeout braków (>120s)', 504); } catch(_) {} }, 120000);
+    req.on('end', async () => {
+      try {
+        const { orders } = JSON.parse(body);
+        if (!orders || !orders.length) { clearTimeout(abort); jsonResp(res, { ok: true, braki: {} }); return; }
+        let rates = {};
+        try { rates = (await getRates()).rates || {}; } catch(_) {}   // NBP — gdy padnie, liczymy tylko PLN
+        const braki = await queryOrdersBraki(orders, rates);
+        clearTimeout(abort);
+        jsonResp(res, { ok: true, braki });
+      } catch (err) {
+        clearTimeout(abort);
+        console.error('[API] /api/order-braki error:', err.message);
+        errResp(res, err.message);
+      }
+    });
     return;
   }
 

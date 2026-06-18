@@ -16,7 +16,7 @@
       "id": "PIL",
       "nazwa": "Piłowanie",
       "podstawaMocy": "maszyna",
-      "wydajnosc": 0.85,
+      "wydajnosc": 0.6,
       "grupaSt": [
         "PIL",
         "PILD",
@@ -34,7 +34,7 @@
       "id": "LAS3D",
       "nazwa": "Laser 3D",
       "podstawaMocy": "maszyna",
-      "wydajnosc": 0.85,
+      "wydajnosc": 0.6,
       "grupaSt": [
         "LAS3D"
       ],
@@ -49,7 +49,7 @@
       "id": "LAS2D",
       "nazwa": "Laser 2D",
       "podstawaMocy": "maszyna",
-      "wydajnosc": 0.85,
+      "wydajnosc": 0.6,
       "grupaSt": [
         "LAS2D",
         "GILB"
@@ -65,7 +65,7 @@
       "id": "GIEB",
       "nazwa": "Gięcie",
       "podstawaMocy": "maszyna",
-      "wydajnosc": 0.85,
+      "wydajnosc": 0.6,
       "grupaSt": [
         "GIEB",
         "GIEP"
@@ -81,7 +81,7 @@
       "id": "CNC",
       "nazwa": "Toczenie CNC",
       "podstawaMocy": "maszyna",
-      "wydajnosc": 0.85,
+      "wydajnosc": 0.6,
       "grupaSt": [
         "GAMM",
         "TOKC",
@@ -99,7 +99,7 @@
       "id": "CNCF",
       "nazwa": "Frezowanie CNC",
       "podstawaMocy": "maszyna",
-      "wydajnosc": 0.85,
+      "wydajnosc": 0.65,
       "grupaSt": [
         "CCNC",
         "FRER",
