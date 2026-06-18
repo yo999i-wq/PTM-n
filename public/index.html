@@ -1,0 +1,2498 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MRP Browser — Europa Systems</title>
+<style>
+/* ── Reset & base ───────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:        #0F172A;
+  --bg2:       #1E293B;
+  --bg3:       #263548;
+  --border:    #334155;
+  --text:      #F1F5F9;
+  --text2:     #94A3B8;
+  --text3:     #64748B;
+  --blue:      #2563EB;
+  --blue2:     #1D4ED8;
+  --green:     #10B981;
+  --red:       #EF4444;
+  --red2:      #DC2626;
+  --orange:    #F59E0B;
+  --purple:    #8B5CF6;
+  --teal:      #06B6D4;
+  --font:      'Segoe UI', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+body.light{
+  --bg:        #F1F5F9;
+  --bg2:       #FFFFFF;
+  --bg3:       #E2E8F0;
+  --border:    #94A3B8;
+  --text:      #0F172A;
+  --text2:     #334155;
+  --text3:     #64748B;
+  --blue:      #1D4ED8;
+  --blue2:     #1E40AF;
+  --green:     #047857;
+  --red:       #B91C1C;
+  --red2:      #991B1B;
+  --orange:    #B45309;
+  --purple:    #6D28D9;
+  --teal:      #0E7490;
+}
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  font-size:13px;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.header{
+  background:linear-gradient(135deg,#1E3A5F,#1D4ED8);
+  padding:10px 16px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-shrink:0;
+  border-bottom:1px solid rgba(255,255,255,.1);
+}
+.logo{font-size:17px;font-weight:800;color:white;letter-spacing:-.5px;white-space:nowrap}
+.logo span{color:#60A5FA}
+.logo sub{font-size:9px;font-weight:400;color:rgba(255,255,255,.5);display:block;letter-spacing:.5px;margin-top:-2px}
+
+/* ── Filter bar ─────────────────────────────────────────────── */
+.filter-bar{
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  padding:8px 14px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+  flex-wrap:wrap;
+}
+.filter-group{display:flex;align-items:center;gap:5px}
+.filter-label{
+  font-size:10px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.5px;white-space:nowrap
+}
+.filter-input{
+  padding:5px 8px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:5px;
+  color:var(--text);
+  font-size:12px;
+  outline:none;
+  font-family:var(--font-mono);
+}
+.filter-input:focus{border-color:var(--blue)}
+body.light .header{background:linear-gradient(135deg,#1E40AF,#2563EB)}
+body.light .mrp-table thead th{background:#CBD5E1;color:#0F172A}
+body.light tr.shortage{background:rgba(185,28,28,.08)}
+body.light tr.warning{background:rgba(180,83,9,.08)}
+body.light tr.ok-plus{background:rgba(4,120,87,.06)}
+body.light .detail-panel{border-left:1px solid var(--border)}
+body.light .btn-ghost{color:#1E293B;border-color:#94A3B8}
+body.light .btn-ghost:hover{background:rgba(0,0,0,.07);color:#0F172A}
+body.light .filter-bar{background:#F8FAFC}
+body.light .stat-bar{background:#FFFFFF;border-color:#94A3B8}
+body.light .filter-input{background:#FFFFFF;color:#0F172A;border-color:#94A3B8}
+body.light .search-input{background:#FFFFFF;color:#0F172A;border-color:#94A3B8}
+body.light .search-input::placeholder{color:#94A3B8}
+body.light .filter-input::placeholder{color:#94A3B8}
+body.light .stat-val{color:#0F172A}
+body.light .stat-val.red{color:#B91C1C}
+body.light .stat-val.orange{color:#B45309}
+body.light .filter-label{color:#475569}
+body.light .filter-quick{color:#1E293B !important;border-color:#94A3B8}
+body.light .detail-header{background:#F8FAFC;border-color:#94A3B8}
+body.light .detail-table thead th{background:#E2E8F0;color:#0F172A}
+body.light tr.drow-mag{background:rgba(0,0,0,.04)}
+body.light tr.drow-mag td{color:#0F172A!important;font-weight:700}
+body.light tr.drow-mag td:first-child{color:#0F172A!important}
+body.light tr.drow-pro td{color:#1E3A5F!important}
+body.light tr.drow-pro td:first-child{color:#1D4ED8!important;font-weight:600}
+body.light tr.drow-pro td.col-dok{color:#0369A1!important}
+body.light tr.drow-filtered td{color:#78350F!important}
+body.light tr.drow-filtered td:first-child{color:#B45309!important;font-weight:700}
+body.light tr.drow-filtered td.col-dok{color:#92400E!important}
+body.light tr.drow-zam td{color:#064E3B!important}
+body.light tr.drow-zam td:first-child{color:#047857!important;font-weight:600}
+body.light tr.drow-zam td.col-dok{color:#065F46!important}
+body.light tr.drow-np{background:rgba(109,40,217,.06)}
+body.light tr.drow-np td{color:#4C1D95!important}
+body.light tr.drow-np td.col-dok{color:#5B21B6!important}
+body.light .detail-legend{background:#F8FAFC;border-color:#94A3B8}
+body.light .summary-bar{background:#EFF6FF;border-color:#BFDBFE}
+body.light .loading-overlay{background:rgba(241,245,249,.8)}
+body.light .loading-text{color:#334155}
+input[type="date"].filter-input{color-scheme:dark}
+input[type="date"].filter-input::-webkit-calendar-picker-indicator{filter:invert(0.7) brightness(1.5);cursor:pointer;opacity:1}
+body.light input[type="date"].filter-input{color-scheme:light}
+body.light input[type="date"].filter-input::-webkit-calendar-picker-indicator{filter:none}
+.filter-input.w40{width:52px}
+.filter-input.w55{width:60px}
+.filter-input.w70{width:74px}
+.filter-input.w30{width:38px}
+.filter-sep{width:1px;height:24px;background:var(--border);flex-shrink:0}
+.search-input{
+  padding:5px 10px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:5px;
+  color:var(--text);
+  font-size:12px;
+  outline:none;
+  width:200px;
+}
+.search-input:focus{border-color:var(--blue)}
+.btn{
+  padding:5px 12px;
+  border-radius:6px;
+  border:none;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:600;
+  display:inline-flex;align-items:center;gap:5px;
+  white-space:nowrap;
+  transition:background .12s;
+}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--blue);color:white}
+.btn-primary:hover:not(:disabled){background:var(--blue2)}
+.btn-ghost{background:rgba(255,255,255,.08);color:white}
+.btn-ghost:hover:not(:disabled){background:rgba(255,255,255,.14)}
+.btn-sm{padding:3px 9px;font-size:11px}
+
+/* ── Stat bar ────────────────────────────────────────────────── */
+.stat-bar{
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  padding:4px 14px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  font-size:11px;
+  color:var(--text3);
+  flex-shrink:0;
+}
+.stat-item{display:flex;align-items:center;gap:5px}
+.stat-val{font-weight:700;color:var(--text2)}
+.stat-val.red{color:var(--red)}
+.stat-val.green{color:var(--green)}
+.stat-val.orange{color:var(--orange)}
+.stat-spin{
+  width:12px;height:12px;
+  border:2px solid rgba(255,255,255,.15);
+  border-top-color:var(--blue);
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+  display:none;
+}
+.stat-spin.active{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Main layout ─────────────────────────────────────────────── */
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* ── Main table ──────────────────────────────────────────────── */
+.main-panel{
+  flex:1;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  background:var(--bg);
+  transition:flex .2s;
+}
+.table-wrap{
+  flex:1;
+  overflow:auto;
+}
+table.mrp-table{
+  border-collapse:collapse;
+  width:100%;
+  min-width:1100px;
+  font-size:12px;
+}
+table.mrp-table thead th{
+  background:var(--bg2);
+  padding:6px 8px;
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  color:var(--text3);
+  border-bottom:2px solid var(--border);
+  white-space:nowrap;
+  position:sticky;top:0;z-index:2;
+  cursor:pointer;
+  user-select:none;
+}
+table.mrp-table thead th:hover{color:var(--text2);background:var(--bg3)}
+table.mrp-table thead th .sort-icon{color:var(--text3);font-size:9px;margin-left:3px}
+table.mrp-table thead th.sorted .sort-icon{color:var(--teal)}
+
+table.mrp-table tbody tr{
+  border-bottom:1px solid rgba(51,65,85,.5);
+  cursor:pointer;
+  transition:background .08s;
+}
+table.mrp-table tbody tr:hover{background:var(--bg3)}
+table.mrp-table tbody tr.active{background:#1D3F6B!important;outline:1px solid var(--blue)}
+table.mrp-table tbody tr.active td{color:#F1F5F9!important}
+table.mrp-table tbody tr.active td.col-indeks{color:#7DD3FC!important}
+table.mrp-table tbody tr.active td.col-razem{color:#FCA5A5!important}
+body.light table.mrp-table tbody tr.active{background:#1E40AF!important}
+body.light table.mrp-table tbody tr.active td{color:#FFFFFF!important}
+body.light table.mrp-table tbody tr.active td.col-indeks{color:#BAE6FD!important}
+table.mrp-table tbody td{
+  padding:4px 8px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:220px;
+}
+/* Kolumna INDEKS - mono */
+table.mrp-table tbody td.col-indeks{
+  font-family:var(--font-mono);font-size:11px;color:var(--teal);font-weight:600;
+  font-variant-numeric:slashed-zero;
+  font-feature-settings:"zero" 1;
+  cursor:pointer;
+}
+table.mrp-table tbody td.col-indeks:hover{
+  text-decoration:underline;text-underline-offset:2px;
+}
+table.mrp-table tbody td.col-nazwa{
+  color:var(--text);max-width:260px;
+}
+table.mrp-table tbody td.num{
+  text-align:right;font-family:var(--font-mono);font-size:11px
+}
+table.mrp-table tbody td.col-jm{
+  text-align:center;font-size:10px;color:var(--text3);font-family:var(--font-mono)
+}
+
+/* Row color coding */
+tr.shortage td.col-brakuje, tr.shortage td.col-razem{color:var(--red)!important;font-weight:700}
+tr.shortage{background:rgba(239,68,68,.06)!important}
+tr.shortage:hover{background:rgba(239,68,68,.12)!important}
+tr.shortage.active{background:rgba(239,68,68,.18)!important}
+
+tr.warning{background:rgba(245,158,11,.04)!important}
+tr.warning:hover{background:rgba(245,158,11,.10)!important}
+tr.warning td.col-brakuje{color:var(--orange)!important;font-weight:700}
+
+tr.ok-plus td.col-razem{color:var(--green)!important}
+
+/* Pasek pokrycia */
+.cov-bar{
+  display:flex;
+  height:10px;
+  border-radius:4px;
+  overflow:hidden;
+  background:rgba(255,255,255,.07);
+  min-width:80px;
+  max-width:120px;
+  margin-left:auto;
+}
+.cov-seg-green{background:#10B981;transition:width .2s}
+.cov-seg-yellow{background:#F59E0B;transition:width .2s}
+.cov-pct{
+  font-family:var(--font-mono);font-size:10px;color:var(--text3);
+  white-space:nowrap;margin-left:5px;min-width:36px;text-align:right;
+}
+
+/* Znacznik statusu płatności zamówień ($) */
+.pay-cell{white-space:nowrap;text-align:center}
+.pay-dollar{font-weight:800;font-size:13px;cursor:help;margin:0 1px;letter-spacing:-1px}
+
+.no-data{
+  padding:60px 20px;text-align:center;color:var(--text3);
+  font-size:14px;line-height:2;
+}
+.no-data .icon{font-size:40px;margin-bottom:8px;opacity:.3;display:block}
+
+/* ── Detail panel ─────────────────────────────────────────────── */
+.detail-panel{
+  width:0;
+  overflow:hidden;
+  background:var(--bg2);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  transition:width .22s ease;
+  flex-shrink:0;
+}
+.detail-panel.open{width:680px}
+.detail-header{
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  display:flex;align-items:flex-start;gap:8px;
+}
+.detail-title{flex:1;min-width:0}
+.detail-indeks{
+  font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--teal)
+}
+.detail-nazwa{font-size:12px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail-meta{
+  display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;
+}
+.detail-badge{
+  padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;
+  background:rgba(255,255,255,.07);color:var(--text2);
+}
+.detail-badge.red{background:rgba(239,68,68,.18);color:#FCA5A5}
+.detail-badge.green{background:rgba(16,185,129,.15);color:#6EE7B7}
+.detail-badge.orange{background:rgba(245,158,11,.15);color:#FCD34D}
+.detail-close{
+  background:transparent;border:none;cursor:pointer;
+  color:var(--text3);font-size:18px;line-height:1;padding:0;
+  margin-top:-2px;flex-shrink:0;
+}
+.detail-close:hover{color:var(--text)}
+.detail-scroll{flex:1;overflow:auto}
+
+/* Detail table */
+table.detail-table{
+  border-collapse:collapse;width:100%;font-size:11px;
+  min-width:640px;
+}
+table.detail-table thead th{
+  background:var(--bg);
+  padding:5px 7px;
+  font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--text3);
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;position:sticky;top:0;z-index:2;
+}
+table.detail-table tbody td{
+  padding:3px 7px;
+  border-bottom:1px solid rgba(51,65,85,.4);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:180px;
+}
+table.detail-table tbody td.num{
+  text-align:right;font-family:var(--font-mono);font-size:10px
+}
+table.detail-table tbody td.mono{
+  font-family:var(--font-mono);font-size:10px
+}
+/* Detail row type colors */
+tr.drow-mag td{color:#FFFFFF;font-weight:700}
+tr.drow-mag td:first-child{color:#FFFFFF;font-weight:700}
+tr.drow-pro td{color:var(--text)}
+tr.drow-pro td:first-child{color:var(--blue);font-weight:600}
+tr.drow-pro td.col-dok{color:var(--teal)}
+tr.drow-filtered td{color:#FCD34D}
+tr.drow-filtered td:first-child{color:#F59E0B;font-weight:700}
+tr.drow-filtered td.col-dok{color:#FBBF24}
+tr.drow-np{background:rgba(139,92,246,.12)}
+tr.drow-np td{color:#C4B5FD}
+tr.drow-np td.col-dok{color:#A78BFA}
+tr.drow-zam td{color:var(--text)}
+tr.drow-zam td:first-child{color:var(--green);font-weight:600}
+tr.drow-zam td.col-dok{color:#6EE7B7}
+tr.drow-sum{background:var(--bg);font-weight:700}
+tr.drow-sum td{color:var(--orange)}
+
+.detail-legend{
+  padding:6px 14px;
+  border-top:1px solid var(--border);
+  display:flex;gap:12px;flex-wrap:wrap;
+  font-size:10px;
+  flex-shrink:0;
+}
+.leg-item{display:flex;align-items:center;gap:5px}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── Loading overlay ─────────────────────────────────────────── */
+.loading-overlay{
+  position:absolute;inset:0;
+  background:rgba(15,23,42,.7);
+  display:none;align-items:center;justify-content:center;
+  z-index:10;flex-direction:column;gap:12px;
+  border-radius:4px;
+}
+.loading-overlay.active{display:flex}
+.loading-spinner{
+  width:36px;height:36px;
+  border:3px solid rgba(255,255,255,.1);
+  border-top-color:var(--blue);
+  border-radius:50%;animation:spin .7s linear infinite
+}
+.loading-text{color:var(--text2);font-size:12px}
+
+/* ── Toast ───────────────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:20px;right:20px;
+  background:var(--bg3);border:1px solid var(--border);
+  padding:10px 16px;border-radius:8px;
+  font-size:12px;color:var(--text);
+  box-shadow:0 4px 20px rgba(0,0,0,.4);
+  display:none;z-index:100;max-width:360px;
+}
+.toast.err{border-color:var(--red);background:rgba(239,68,68,.12)}
+.toast.show{display:block}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 1200px){
+  .detail-panel.open{width:500px}
+}
+@media (max-width: 900px){
+  .detail-panel.open{width:100%;position:absolute;right:0;top:0;bottom:0;z-index:20}
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    Europa<span>Systems</span>
+    <sub>MRP Browser</sub>
+  </div>
+
+  <div style="flex:1"></div>
+
+  <div id="ratesBox" title="Kursy średnie NBP (PLN)"
+       style="display:flex;gap:8px;align-items:center;margin-right:14px;font-family:var(--font-mono);font-size:12px;color:#fff;font-weight:700;white-space:nowrap">
+    <span data-c="EUR" style="border:1px solid var(--border);border-radius:6px;padding:3px 8px">€ —</span>
+    <span data-c="USD" style="border:1px solid var(--border);border-radius:6px;padding:3px 8px">$ —</span>
+    <span data-c="GBP" style="border:1px solid var(--border);border-radius:6px;padding:3px 8px">£ —</span>
+  </div>
+
+  <button class="btn btn-ghost btn-sm" id="btnTheme" onclick="toggleTheme()" title="Przełącz tryb jasny/ciemny">🌙</button>
+  <button class="btn btn-ghost btn-sm" id="btnSummary" onclick="toggleSummary()" title="Podsumowanie i wykresy">📊 Podsumowanie</button>
+  <button class="btn btn-ghost btn-sm" id="btnSupplier" onclick="toggleSupplier()" title="Analiza dostawcy — ile zapłacić u kogo (z zamówień własnych)">🏭 Analiza dostawcy</button>
+  <button class="btn btn-ghost btn-sm" onclick="toggleHelp()">❓ Legenda</button>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <!-- Filtr zlecenia -->
+  <div class="filter-group">
+    <span class="filter-label">Kat ZO</span>
+    <input class="filter-input w40" id="fKat" placeholder="PRO" maxlength="4"
+           style="text-transform:uppercase" onkeyup="katUpper(this)" value="PRO">
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Rok</span>
+    <input class="filter-input w55" id="fRok" placeholder="2024" maxlength="4" value="">
+  </div>
+  <div class="filter-group" style="position:relative">
+    <span class="filter-label">Symbol ZO</span>
+    <input class="filter-input w70" id="fSymb" placeholder="00401" maxlength="10" value=""
+           oninput="onSymbInput()" onfocus="onSymbFocus()" autocomplete="off">
+    <div id="symbDropdown" style="display:none;position:absolute;top:30px;left:0;z-index:999;background:var(--bg2);border:1px solid var(--border);border-radius:6px;min-width:300px;max-height:260px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,.5)"></div>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">LP</span>
+    <input class="filter-input w40" id="fLp" placeholder="" maxlength="5" value=""
+           style="text-transform:uppercase" onkeyup="katUpper(this)">
+  </div>
+
+  <div class="filter-sep"></div>
+
+  <!-- Wyszukaj materiał -->
+  <div class="filter-group">
+    <span class="filter-label">Szukaj</span>
+    <input class="search-input" id="fSearch" placeholder="Indeks lub nazwa materiału..."
+           oninput="onSearchInput()" onkeyup="onSearchKey(event)">
+  </div>
+
+  <button class="btn btn-primary" id="btnLoad" onclick="loadMaterials()">▶ Pobierz</button>
+  <button class="btn btn-ghost btn-sm" id="btnRefresh" onclick="refreshFromDb()" title="Wymuś pobranie świeżych danych z bazy (czyści cache serwera)">↻ Odśwież z bazy</button>
+  <button class="btn btn-ghost btn-sm" onclick="clearFilter()">✕ Czyść</button>
+
+  <div class="filter-sep"></div>
+
+  <!-- Filtr terminu -->
+  <div class="filter-group">
+    <span class="filter-label">Do daty</span>
+    <input type="date" class="filter-input" id="fDate" style="width:130px" oninput="onDateChange()">
+    <button class="btn btn-ghost btn-sm" id="btnClearDate" onclick="clearDate()" title="Usuń datę" style="display:none;padding:3px 7px;font-size:11px">✕</button>
+  </div>
+  <button class="btn btn-ghost btn-sm" id="btnGlobal" onclick="toggleGlobal()"
+    title="Globalnie: ignoruj filtr zlecenia, filtruj wszystkie materiały po terminie">
+    🌐 Globalnie
+  </button>
+
+  <div class="filter-sep"></div>
+
+  <!-- Szybki filtr brakujące -->
+  <div class="filter-group" style="gap:4px">
+    <span class="filter-label">Pokaż:</span>
+    <button class="btn btn-ghost btn-sm filter-quick" id="fqAll" onclick="setQuick('all')" style="background:rgba(37,99,235,.2);color:#93C5FD">Wszystkie</button>
+    <button class="btn btn-ghost btn-sm filter-quick" id="fqShort" onclick="setQuick('shortage')">Braki</button>
+    <span id="brakiSum" title="Suma wartości braków (PLN) dla widocznych materiałów"
+          style="margin-left:12px;font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--red);white-space:nowrap"></span>
+  </div>
+</div>
+
+<!-- STAT BAR -->
+<div class="stat-bar">
+  <div class="stat-item">
+    <span class="stat-spin" id="statSpin"></span>
+    <span class="stat-val" id="statCount">—</span>
+    <span>materiałów</span>
+  </div>
+  <div class="stat-item">
+    <span style="color:#EF4444">●</span>
+    <span class="stat-val red" id="statShort">—</span>
+    <span>brakujących</span>
+  </div>
+  <div style="flex:1"></div>
+  <div class="stat-item" id="statFilter" style="display:none">
+    <span>Filter:</span>
+    <span class="stat-val" id="statFilterText"></span>
+    <button class="btn btn-ghost btn-sm" onclick="clearFilter()" style="padding:2px 7px">✕</button>
+  </div>
+  <div class="stat-item">
+    <span id="statLastUpdate" style="color:var(--text3)"></span>
+  </div>
+  <button class="btn btn-ghost btn-sm" onclick="exportToExcel()" title="Eksport tabeli do Excel" style="margin-left:8px">📥 Excel</button>
+  <button class="btn btn-ghost btn-sm" onclick="exportZamToExcel()" title="Eksport pozycji ZAM do Excel" style="margin-left:4px">📋 ZAM</button>
+  <button class="btn btn-ghost btn-sm" onclick="exportProToExcel()" title="Eksport pozycji PRO do Excel" style="margin-left:4px">📄 PRO</button>
+  <button class="btn btn-ghost btn-sm" onclick="exportBrakiToExcel()" title="Eksport wartości braków (niedobór netto) do Excel" style="margin-left:4px">🟥 Braki</button>
+</div>
+
+<!-- SUMMARY BAR -->
+<div class="summary-bar" id="summaryBar" style="display:none">
+  <div class="sum-label">Zlecenie <span id="sumZlecenie" class="sum-zlec"></span></div>
+  <div class="sum-sep"></div>
+  <div class="sum-item">
+    <span class="sum-name">Materiałów</span>
+    <span class="sum-val" id="sumMat">—</span>
+  </div>
+  <div class="sum-item">
+    <span class="sum-name">Rozchód (potrzeba)</span>
+    <span class="sum-val" id="sumRozch">—</span>
+  </div>
+  <div class="sum-item">
+    <span class="sum-name">Pozostanie</span>
+    <span class="sum-val" id="sumPoz">—</span>
+  </div>
+  <div class="sum-item">
+    <span class="sum-name">Niedobór łącznie</span>
+    <span class="sum-val red" id="sumNied">—</span>
+  </div>
+  <div class="sum-item">
+    <span class="sum-name">Pozycji z niedoborem</span>
+    <span class="sum-val red" id="sumNiedCnt">—</span>
+  </div>
+  <div class="sum-item">
+    <span class="sum-name">Przychód oczekiwany</span>
+    <span class="sum-val green" id="sumPrzych">—</span>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="layout">
+
+  <!-- MAIN TABLE PANEL -->
+  <div class="main-panel" id="mainPanel">
+    <div class="table-wrap" id="tableWrap">
+      <div class="no-data" id="emptyState">
+        <span class="icon">📦</span>
+        Wprowadź Symbol ZO i kliknij <strong>▶ Pobierz</strong><br>
+        lub wpisz indeks/nazwę materiału w polu Szukaj
+      </div>
+      <table class="mrp-table" id="mrpTable" style="display:none">
+        <thead>
+          <tr>
+            <th onclick="sortBy('indeks')" title="Indeks materiału">Indeks<span class="sort-icon" id="si-indeks">↕</span></th>
+            <th onclick="sortBy('nazwa')">Nazwa<span class="sort-icon" id="si-nazwa">↕</span></th>
+
+            <th onclick="sortBy('stanil')" class="num" title="Stan obecny magazynowy">Stan obecny</th>
+            <th onclick="sortBy('przychod')" class="num" title="Planowany przychód">Przychód</th>
+            <th onclick="sortBy('rozchod')" class="num" title="Planowany rozchód">Rozchód</th>
+            <th onclick="sortBy('razem')" class="num" title="Pozostanie = Stan + Przychód - Rozchód">Pozostanie</th>
+            <th onclick="sortBy('przychNp')" class="num" title="Przychód niepotwierdzony">Przych.nie</th>
+            <th onclick="sortBy('przychod')" class="num" title="Przychód potwierdzony (suma ZAM)">Przych.P</th>
+
+            <th onclick="sortBy('iloscR')" class="num" title="Ilość potrzebna do zlecenia (ILOSC_R)">IL-Zlec</th>
+            <th onclick="sortBy('stanPoZlec')" class="num" title="Stan po zleceniu = Stan obecny + IL-Zlec">Stan po zlec.</th>
+            <th onclick="sortBy('dataZam')" title="Najbliższy termin dostawy zamówienia">Data ZAM</th>
+            <th class="num" title="Status płatności zamówień własnych ($). Zielony = opłacone, pomarańczowy = częściowo opłacone, czerwony = nie opłacone, fioletowy = blokada dostawcy. Najedź na znaczek po szczegóły.">$</th>
+            <th class="num" title="Pokrycie = (Stan + Przychód) / Rozchód">Pokrycie</th>
+            <th class="num" onclick="sortBy('brakiPln')" title="Wartość braków = |Stan po zlec.| × cena, przeliczona na PLN wg kursów NBP">Braki PLN<span class="sort-icon" id="si-brakiPln">↕</span></th>
+            <th class="num" onclick="sortBy('leadDays')" title="Najdłuższy lead time (tygodnie) = data przyjęcia PZ − data wystawienia zamówienia; maksimum ze wszystkich przyjęć. „~" = oszacowany wg podobnego indeksu">Lead (tyg.)<span class="sort-icon" id="si-leadDays">↕</span></th>
+          </tr>
+        </thead>
+        <tbody id="mrpTableBody"></tbody>
+        <tfoot id="mrpTableFoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-header">
+      <div class="detail-title">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="detail-indeks" id="detIndeks">—</span>
+          <a id="detDebugLink" href="#" target="_blank" title="Diagnostyka ZAM vs PRO"
+             style="color:var(--text3);font-size:15px;text-decoration:none;opacity:.6;line-height:1;transition:opacity .15s"
+             onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.6">ⓘ</a>
+        </div>
+        <div class="detail-nazwa" id="detNazwa"></div>
+        <div class="detail-meta" id="detMeta"></div>
+      </div>
+      <button class="detail-close" onclick="closeDetail()" title="Zamknij (Esc)">✕</button>
+    </div>
+
+    <div class="detail-scroll" id="detailScroll">
+      <div style="position:relative;min-height:100px">
+        <div class="loading-overlay" id="detailLoader">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Pobieranie szczegółów...</div>
+        </div>
+        <table class="detail-table" id="detailTable" style="display:none">
+          <thead>
+            <tr>
+              <th>Typ</th>
+              <th class="col-dok">Dokument</th>
+              <th class="num">Ilość</th>
+              <th>Termin</th>
+              <th class="num" title="Przychód niepotwierdzony">P.NP</th>
+              <th class="num" title="Przychód potwierdzony (ilość z dokumentu ZAM)">Przych.P</th>
+              <th class="num" title="Wartość zamówienia">Wartość</th>
+              <th>Ind.Wyr</th>
+              <th title="Data 1 dodania składnika do MRP">Data dodania</th>
+            </tr>
+          </thead>
+          <tbody id="detailTableBody"></tbody>
+        </table>
+        <div class="no-data" id="detailEmpty" style="display:none">
+          <span class="icon" style="font-size:28px">🔍</span>
+          Brak powiązań
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--blue)"></div><span>PRO - przewodnik</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div><span>ZAM - zamówienie</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--text3)"></div><span>MAG - stan</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--purple)"></div><span>Niepotwierdzony</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- HELP MODAL -->
+<div id="helpModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:24px;max-width:580px;width:90%;max-height:80vh;overflow:auto">
+    <h3 style="margin-bottom:16px;color:var(--teal)">📖 Legenda kolorów i skrótów</h3>
+    <h4 style="color:var(--text2);font-size:11px;text-transform:uppercase;margin-bottom:8px">Tabela główna (materiały)</h4>
+    <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:16px">
+      <tr><td style="padding:4px 8px;background:rgba(239,68,68,.06);border-bottom:1px solid var(--border)">🔴 Czerwony</td><td style="padding:4px 8px">BRAKUJE &lt; 0 — niedobór materiału</td></tr>
+      <tr><td style="padding:4px 8px;background:rgba(245,158,11,.04);border-bottom:1px solid var(--border)">🟡 Żółty</td><td style="padding:4px 8px">BRAKUJE bliskie 0 — ostrzeżenie</td></tr>
+      <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border)">Biały</td><td style="padding:4px 8px">Stan prawidłowy</td></tr>
+    </table>
+    <h4 style="color:var(--text2);font-size:11px;text-transform:uppercase;margin-bottom:8px">Kolumna „$" — status płatności zamówień</h4>
+    <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:16px">
+      <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);width:90px"><span style="color:var(--green);font-weight:800;font-size:14px">$</span> zielony</td><td style="padding:4px 8px">Opłacone 100%</td></tr>
+      <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border)"><span style="color:var(--orange);font-weight:800;font-size:14px">$</span> pomarańczowy</td><td style="padding:4px 8px">Częściowo opłacone</td></tr>
+      <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border)"><span style="color:var(--red);font-weight:800;font-size:14px">$</span> czerwony</td><td style="padding:4px 8px">Nie opłacone</td></tr>
+      <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border)"><span style="color:var(--purple);font-weight:800;font-size:14px">$</span> fioletowy</td><td style="padding:4px 8px">Blokada dostawcy</td></tr>
+      <tr><td colspan="2" style="padding:4px 8px;color:var(--text3);font-size:11px">Dotyczy zamówień własnych (ZAM) materiału. Jeśli materiał ma kilka zamówień o różnych statusach, pokazywany jest osobny znaczek $ dla każdego. Najedź na znaczek, aby zobaczyć opis i liczbę zamówień.</td></tr>
+    </table>
+    <h4 style="color:var(--text2);font-size:11px;text-transform:uppercase;margin-bottom:8px">Panel szczegółów (powiązania)</h4>
+    <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:16px">
+      <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--blue)">🔵 PRO</td><td style="padding:4px 8px">Rozchód na przewodnik — materiał potrzebny do realizacji zlecenia</td></tr>
+      <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--green)">🟢 ZAM</td><td style="padding:4px 8px">Zamówienie własne (zakup) — oczekiwany przychód</td></tr>
+      <tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--text3)">⚫ MAG</td><td style="padding:4px 8px">Stan magazynowy (bilans)</td></tr>
+      <tr><td style="padding:4px 8px;background:rgba(139,92,246,.12);border-bottom:1px solid var(--border);color:#C4B5FD">🟣 Fioletowy</td><td style="padding:4px 8px">Niepotwierdzony termin (PRZYCH_NP lub ROZCHOD_NP &gt; 0)</td></tr>
+    </table>
+    <h4 style="color:var(--text2);font-size:11px;text-transform:uppercase;margin-bottom:8px">Skróty klawiaturowe</h4>
+    <div style="font-size:12px;color:var(--text2)">
+      <div><kbd style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:11px">Esc</kbd> — zamknij panel szczegółów</div>
+      <div style="margin-top:4px"><kbd style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:11px">Enter</kbd> w filtrze — pobierz dane</div>
+      <div style="margin-top:4px"><kbd style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:11px">↑ ↓</kbd> — poruszaj się po tabeli</div>
+    </div>
+    <button class="btn btn-primary" onclick="toggleHelp()" style="margin-top:20px">Zamknij</button>
+  </div>
+</div>
+
+<!-- SUMMARY PANEL -->
+<div id="summaryPanel" style="display:none;position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;padding:20px 24px">
+
+  <!-- header -->
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <div>
+      <div style="font-size:16px;font-weight:800;color:var(--text)">Podsumowanie materiałów</div>
+      <div id="sumPanelSub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+    </div>
+    <div style="flex:1"></div>
+    <button class="btn btn-ghost btn-sm" onclick="toggleSummary()">✕ Zamknij</button>
+  </div>
+
+  <!-- KPI tiles -->
+  <div id="sumKpi" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px"></div>
+
+  <!-- charts grid -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+    <!-- Pokrycie histogram -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">🎕 Zamówienia wg terminu</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Dotyczy indeksów z rozchodem &gt; 0</div>
+      <div style="position:relative;height:220px"><canvas id="chartCovDist"></canvas></div>
+    </div>
+
+    <!-- Status pie -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">📊 Ilość wg źródła pokrycia</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Suma ilości ze wszystkich indeksów</div>
+      <div style="position:relative;height:220px"><canvas id="chartStatus"></canvas></div>
+    </div>
+
+    <!-- Top 10 niedobory -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">🔴 Top 10 — największe niedobory wartościowo (PLN)</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Hover = nazwa materiału + cena + ilość</div>
+      <div style="position:relative;height:300px"><canvas id="chartTopShort"></canvas></div>
+    </div>
+
+    <!-- Top 10 rozchod -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">📊 W przychodzie vs do zamówienia — wg asortymentu (PLN)</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Hover = liczba pozycji w asortymencie</div>
+      <div style="position:relative;height:300px"><canvas id="chartTopRozch"></canvas></div>
+    </div>
+
+    <!-- Top 10 zapotrzebowanie zlecenia -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">📋 Top 10 — zapotrzebowanie zlecenia (IL-ZLEC)</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Fioletowy = potrzeba zlecenia | Zielony = stan obecny</div>
+      <div style="position:relative;height:300px"><canvas id="chartTopZlec"></canvas></div>
+    </div>
+
+    <!-- Pokrycie zlecenia histogram -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">📏 Pokrycie zlecenia — stan / IL-ZLEC</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Ile materiałów ma stan pokrywający zapotrzebowanie zlecenia</div>
+      <div style="position:relative;height:220px"><canvas id="chartZlecCov"></canvas></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ANALIZA DOSTAWCY -->
+<div id="supplierPanel" style="display:none;position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;padding:20px 24px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <div>
+      <div style="font-size:16px;font-weight:800;color:var(--text)">🏭 Analiza dostawcy — należności do zapłaty</div>
+      <div id="supPanelSub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+    </div>
+    <div style="flex:1"></div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;margin-right:14px" title="Zaznaczone: tylko materiały tego zlecenia. Odznaczone: pełne zamówienia (wszystkie materiały powiązanych MAT — pełny koszt zakupu).">
+      <input type="checkbox" id="supOnlyThis" checked onchange="onSupScopeChange()"> Pokaż materiały potrzebne tylko do tego zlecenia
+    </label>
+    <button class="btn btn-ghost btn-sm" onclick="toggleSupplier()">✕ Zamknij</button>
+  </div>
+  <div id="supKpi" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px"></div>
+  <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:16px;align-items:start">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">Udział dostawców w należnościach (PLN)</div>
+      <div style="position:relative;height:360px"><canvas id="chartSupplier"></canvas></div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;overflow:auto">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">Należności wg dostawcy <span style="font-weight:400;color:var(--text3)">(kliknij wiersz/wycinek → materiały)</span></div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px" id="supTable"></table>
+    </div>
+  </div>
+  <!-- drill-down: materiały wybranego dostawcy -->
+  <div id="supDrill" style="display:none;margin-top:16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div id="supDrillTitle" style="font-size:13px;font-weight:700;color:var(--text)"></div>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('supDrill').style.display='none'">✕ Zamknij listę</button>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px" id="supDrillTable"></table>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// MRP BROWSER — Frontend JS
+// ============================================================
+
+let allMaterials     = [];   // cały załadowany zestaw
+let filteredMaterials = [];  // po szybkim filtrze (braki/ostrzeżenia)
+let clientFilter     = '';   // klient-side szukanie po tekście
+let selectedRow      = null; // aktywny wiersz
+let sortCol          = 'indeks';
+let sortAsc          = true;
+let quickFilter      = 'all';
+let detailLoading    = false;
+let globalMode       = false; // tryb globalny (bez filtra zlecenia)
+
+// ── Helpers ──────────────────────────────────────────────────
+
+function fmt(v, dec = 3) {
+  if (v == null) return '';
+  const n = Number(v);
+  if (!isNaN(n) && n !== 0) {
+    // Tysiące separator
+    return n.toLocaleString('pl-PL', { maximumFractionDigits: dec });
+  }
+  return v === 0 ? '0' : '';
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  return d.slice(0, 10);
+}
+
+function rowClass(r) {
+  // Brak = STAN PO ZLEC. < 0  (stan obecny + IL-ZLEC, gdzie IL-ZLEC to ujemne zapotrzebowanie)
+  const stanPoZlec = (r.stanil || 0) + (r.iloscR || 0);
+  if (stanPoZlec < 0) return 'shortage';
+  return '';
+}
+
+function detRowClass(r) {
+  if ((r.przychNp && r.przychNp != 0) || (r.rozchodNp && r.rozchodNp != 0)) return 'drow-np';
+  const rod = r.rodzaj ? r.rodzaj.trim().toUpperCase() : '';
+  if (rod === 'R' || rod.startsWith('PRO')) return 'drow-pro';
+  if (rod === 'W' || rod.startsWith('ZAM') || rod.startsWith('RAM') || rod.startsWith('OFE')) return 'drow-zam';
+  if (rod === 'M' || rod === 'S' || rod === '' || rod.startsWith('MAG') || rod.startsWith('STA')) return 'drow-mag';
+  // Heurystyka: jeśli DOKUMENT wygląda jak numer MAT-/PRO- itp.
+  const dok = r.dokument || '';
+  if (/^(PRO|MAT|KOP|GIE|SPA|MON|PIL|CNC)\-/i.test(dok)) return 'drow-pro';
+  if (/^(ZAM|RAM|OFE|PUR|KUP)\-/i.test(dok)) return 'drow-zam';
+  return 'drow-mag';
+}
+
+function detRowLabel(r) {
+  const rod = r.rodzaj ? r.rodzaj.trim().toUpperCase() : '';
+  if (rod === 'R')  return 'PRO';
+  if (rod === 'W')  return 'ZAM';
+  if (rod === 'M' || rod === '' || rod === 'S') return 'MAG';
+  if (rod.length > 0 && rod.length <= 5) return rod;
+  // Z klasy
+  const cls = detRowClass(r);
+  if (cls === 'drow-pro') return 'PRO';
+  if (cls === 'drow-zam') return 'ZAM';
+  return 'MAG';
+}
+
+function showToast(msg, isErr = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = 'toast'; }, 4000);
+}
+
+// ── Loading state ─────────────────────────────────────────────
+
+function setLoading(on) {
+  const spin = document.getElementById('statSpin');
+  const btn  = document.getElementById('btnLoad');
+  spin.classList.toggle('active', on);
+  btn.disabled = on;
+  btn.textContent = on ? '⏳ Pobieranie...' : '▶ Pobierz';
+}
+
+// ── Filter & Sort ─────────────────────────────────────────────
+
+function katUpper(el) { el.value = el.value.toUpperCase(); }
+
+function onDateChange() {
+  // Pokaż/ukryj przycisk X
+  const fDate = document.getElementById('fDate').value;
+  document.getElementById('btnClearDate').style.display = fDate ? 'inline-flex' : 'none';
+  // Odśwież panel szczegółów jeśli otwarty
+  if (selectedRow) {
+    const cached = renderDetailTable._lastRows;
+    if (cached) renderDetailTable(cached);
+  }
+  // Jeśli dane są załadowane — przeładuj z nową datą
+  if (allMaterials.length > 0) {
+    loadMaterials();
+  }
+}
+
+function clearDate() {
+  document.getElementById('fDate').value = '';
+  document.getElementById('btnClearDate').style.display = 'none';
+  if (selectedRow) {
+    const cached = renderDetailTable._lastRows;
+    if (cached) renderDetailTable(cached);
+  }
+  if (allMaterials.length > 0) loadMaterials();
+}
+
+function toggleGlobal() {
+  globalMode = !globalMode;
+  const btn = document.getElementById('btnGlobal');
+  if (globalMode) {
+    btn.style.background = 'rgba(245,158,11,.25)';
+    btn.style.color = '#FCD34D';
+    btn.textContent = '🌐 Globalnie ✓';
+  } else {
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.textContent = '🌐 Globalnie';
+  }
+}
+
+function setQuick(mode) {
+  quickFilter = mode;
+  document.querySelectorAll('.filter-quick').forEach(b => {
+    b.style.background = '';b.style.color = '';
+  });
+  const active = document.getElementById('fq' + mode.charAt(0).toUpperCase() + mode.slice(1));
+  if (active) { active.style.background='rgba(37,99,235,.2)'; active.style.color='#93C5FD'; }
+  applyFilters();
+}
+
+function onSearchInput() {
+  clientFilter = document.getElementById('fSearch').value.toLowerCase();
+  applyFilters();
+}
+
+function onSearchKey(e) {
+  if (e.key === 'Enter') {
+    const s = document.getElementById('fSearch').value.trim();
+    if (s.length >= 2 && allMaterials.length === 0) {
+      loadMaterials();
+    } else {
+      applyFilters();
+    }
+  }
+}
+
+function applyFilters() {
+  let data = allMaterials;
+
+  // Quick filter
+  if (quickFilter === 'shortage') {
+    // Brak = STAN PO ZLEC. < 0  (stanil + iloscR)
+    data = data.filter(r => ((r.stanil || 0) + (r.iloscR || 0)) < 0);
+  }
+
+  // Filtr wykluczeń indeksów
+  const EXCLUDED_PREFIXES = [
+    'PSTA', 'WCON', 'WKON', 'KOCY',
+    'W0',
+    'K2D', 'K3D', 'KGUM', 'KHAR', 'KL2D', 'KMAL', 'KOBR', 'KPIA', 'KSPA', 'KTRANS',
+  ];
+  data = data.filter(r => !r.indeks || !EXCLUDED_PREFIXES.some(p => r.indeks.toUpperCase().startsWith(p)));
+
+  // Client-side text filter
+  if (clientFilter.length >= 2) {
+    data = data.filter(r =>
+      (r.indeks && r.indeks.toLowerCase().includes(clientFilter)) ||
+      (r.nazwa  && r.nazwa.toLowerCase().includes(clientFilter))
+    );
+  }
+
+  filteredMaterials = data;
+  renderTable();
+
+  // Aktualizuj liczniki
+  document.getElementById('statCount').textContent = filteredMaterials.length.toLocaleString('pl-PL');
+  const short = filteredMaterials.filter(r => ((r.stanil||0) + (r.iloscR||0)) < 0).length;
+  document.getElementById('statShort').textContent = short.toLocaleString('pl-PL');
+}
+
+function sortBy(col) {
+  if (sortCol === col) { sortAsc = !sortAsc; }
+  else { sortCol = col; sortAsc = true; }
+  document.querySelectorAll('.sort-icon').forEach(el => el.textContent = '↕');
+  const si = document.getElementById('si-' + col);
+  if (si) {
+    si.textContent = sortAsc ? '↑' : '↓';
+    si.closest('th').classList.add('sorted');
+  }
+  applyFilters();
+}
+
+function getSortVal(r) {
+  // Braki PLN — wartość liczona (nie ma jej wprost w wierszu)
+  if (sortCol === 'brakiPln') { const v = brakiPlnValue(r); return v == null ? (sortAsc ? Infinity : -Infinity) : v; }
+  const v = r[sortCol];
+  if (v == null) return sortAsc ? Infinity : -Infinity;
+  if (typeof v === 'number') return v;
+  return String(v).toLowerCase();
+}
+
+// ── Symbol autocomplete ──────────────────────────────────────
+
+let symbTimer = null;
+
+async function loadSymbDropdown(q) {
+  const kat = document.getElementById('fKat').value.trim().toUpperCase() || 'PRO';
+  const rok = document.getElementById('fRok').value.trim();
+  if (!rok) { hideSymbDropdown(); return; }
+  try {
+    const url = `/api/orders?kat=${encodeURIComponent(kat)}&rok=${encodeURIComponent(rok)}&q=${encodeURIComponent(q||'')}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (!data.ok || !data.rows.length) { hideSymbDropdown(); return; }
+    renderSymbDropdown(data.rows);
+  } catch(e) { hideSymbDropdown(); }
+}
+
+function renderSymbDropdown(rows) {
+  const dd = document.getElementById('symbDropdown');
+  dd.innerHTML = rows.map(r => {
+    const nazwa = r.nazwa ? `<div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">${r.nazwa}</div>` : '';
+    return `<div onclick="selectSymb('${r.symb}')" style="padding:6px 10px;cursor:pointer;border-bottom:1px solid var(--border)"
+            onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <span style="font-family:var(--font-mono);font-size:12px;color:var(--teal);font-weight:700">${r.symb}</span>
+      ${nazwa}
+    </div>`;
+  }).join('');
+  dd.style.display = 'block';
+}
+
+function hideSymbDropdown() {
+  document.getElementById('symbDropdown').style.display = 'none';
+}
+
+function selectSymb(symb) {
+  document.getElementById('fSymb').value = symb;
+  hideSymbDropdown();
+  loadMaterials();
+}
+
+function onSymbInput() {
+  clearTimeout(symbTimer);
+  const q = document.getElementById('fSymb').value.trim();
+  symbTimer = setTimeout(() => loadSymbDropdown(q), 250);
+}
+
+function onSymbFocus() {
+  const q = document.getElementById('fSymb').value.trim();
+  loadSymbDropdown(q);
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#fSymb') && !e.target.closest('#symbDropdown')) hideSymbDropdown();
+});
+
+// ── Load materials ────────────────────────────────────────────
+
+// Wymuś świeże dane: wyczyść cache serwera i przeładuj bieżący widok
+async function refreshFromDb() {
+  const btn = document.getElementById('btnRefresh');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Odświeżam...'; }
+  try {
+    await fetch('/api/cache/clear', { method: 'POST' });
+    showToast('Cache wyczyszczony — pobieram świeże dane');
+  } catch (e) {
+    showToast('Nie udało się wyczyścić cache: ' + e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '↻ Odśwież z bazy'; }
+  }
+  // Przeładuj tylko jeśli coś było już załadowane
+  if (allMaterials.length > 0 || document.getElementById('fSymb').value.trim() || document.getElementById('fSearch').value.trim()) {
+    loadMaterials();
+  }
+}
+
+async function loadMaterials() {
+  const kat    = document.getElementById('fKat').value.trim().toUpperCase();
+  const rok    = document.getElementById('fRok').value.trim();
+  let   symb   = document.getElementById('fSymb').value.trim();
+  let   lp     = document.getElementById('fLp').value.trim();
+  const search = document.getElementById('fSearch').value.trim();
+  const fDate  = document.getElementById('fDate').value;
+
+  // Jeśli ktoś wkleił pełny numer do pola Symbol (np. "PRO-2025-00242" lub
+  // "PRO-2025-00242-220"), rozbij go na właściwe pola zamiast wysyłać jako symbol.
+  if (symb.includes('-')) {
+    const parts = symb.split('-').map(s => s.trim()).filter(Boolean);
+    // Wzorzec: KAT-ROK-SYMB[-LP]
+    if (parts.length >= 3 && /^\d{4}$/.test(parts[1])) {
+      document.getElementById('fKat').value = parts[0].toUpperCase();
+      document.getElementById('fRok').value = parts[1];
+      symb = parts[2];
+      document.getElementById('fSymb').value = symb;
+      if (parts[3]) {
+        lp = parts[3];
+        document.getElementById('fLp').value = lp;
+      }
+    }
+  }
+
+  // Tryb globalny: filtruj po dacie, ignoruj zlecenie
+  if (globalMode) {
+    if (!fDate && !search) {
+      showToast('W trybie globalnym podaj datę lub szukaj materiału', true);
+      return;
+    }
+    setLoading(true);
+    closeDetail();
+    const params = new URLSearchParams();
+    params.set('global', '1');
+    if (fDate)  params.set('date', fDate);
+    if (search.length >= 2) params.set('search', search);
+    try {
+      const resp = await fetch('/api/materials?' + params.toString());
+      const data = await resp.json();
+      if (!data.ok) throw new Error(data.error || 'Błąd serwera');
+      allMaterials = data.rows || [];
+      quickFilter  = 'all';
+      setQuick('all');
+      applyFilters();
+      const short = allMaterials.filter(r => ((r.stanil||0)+(r.iloscR||0)) < 0).length;
+      document.getElementById('statCount').textContent = allMaterials.length.toLocaleString('pl-PL');
+      document.getElementById('statShort').textContent = short.toLocaleString('pl-PL');
+      document.getElementById('statLastUpdate').textContent = 'Odświeżono: ' + new Date().toLocaleTimeString('pl-PL');
+      document.getElementById('statFilter').style.display = 'flex';
+      document.getElementById('statFilterText').textContent = `🌐 Globalnie do ${fDate || ''}`;
+      showToast(`Załadowano ${allMaterials.length} materiałów (globalnie)`);
+    } catch (err) {
+      showToast('Błąd: ' + err.message, true);
+    } finally {
+      setLoading(false);
+    }
+    return;
+  }
+
+  // Wymaga: (kat + rok + symb) LUB search ≥ 2 znaki
+  const hasOrderFilter = kat && rok && symb;
+  const hasSearch      = search.length >= 2;
+  if (!hasOrderFilter && !hasSearch) {
+    if (kat || rok) {
+      showToast('Podaj Symbol ZO — wszystkie trzy pola: Kat + Rok + Symbol', true);
+    } else {
+      showToast('Podaj Symbol ZO lub wpisz szukany materiał (min. 2 znaki)', true);
+    }
+    const el = document.getElementById('fSymb');
+    el.style.borderColor = 'var(--red)';
+    el.focus();
+    setTimeout(() => { el.style.borderColor = ''; }, 2000);
+    return;
+  }
+
+  setLoading(true);
+  closeDetail();
+
+  const params = new URLSearchParams();
+  if (kat)    params.set('kat',    kat);
+  if (rok)    params.set('rok',    rok);
+  if (symb)   params.set('symb',   symb);
+  if (lp)     params.set('lp',     lp);
+  if (fDate)  params.set('date',   fDate);
+  if (search.length >= 2) params.set('search', search);
+
+  try {
+    const resp = await fetch('/api/materials?' + params.toString());
+    const data = await resp.json();
+
+    if (!data.ok) throw new Error(data.error || 'Błąd serwera');
+
+    allMaterials = data.rows || [];
+    quickFilter  = 'all';
+    setQuick('all');
+    applyFilters();
+
+    // Stat bar
+    const short = allMaterials.filter(r => ((r.stanil||0) + (r.iloscR||0)) < 0).length;
+    document.getElementById('statCount').textContent = allMaterials.length.toLocaleString('pl-PL');
+    document.getElementById('statShort').textContent = short.toLocaleString('pl-PL');
+    document.getElementById('statLastUpdate').textContent = 'Odświeżono: ' + new Date().toLocaleTimeString('pl-PL');
+
+    // Filter info
+    const filterEl = document.getElementById('statFilter');
+    const filterTxt = document.getElementById('statFilterText');
+    if (kat || symb) {
+      filterTxt.textContent = [kat, rok, symb, lp].filter(Boolean).join('-');
+      filterEl.style.display = 'flex';
+    } else {
+      filterEl.style.display = 'none';
+    }
+
+    if (allMaterials.length === 0) showToast('Brak materiałów dla podanych kryteriów', true);
+    else showToast(`Załadowano ${allMaterials.length} materiałów`);
+
+  } catch (err) {
+    showToast('Błąd: ' + err.message, true);
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ── Coverage bar ──────────────────────────────────
+
+function covCell(r) {
+  const rozchod = Math.abs(r.rozchod || 0);
+  if (rozchod === 0) return '<span style="color:var(--text3);font-size:10px">—</span>';
+  const stan   = Math.max(r.stanil   || 0, 0);
+  const przych = Math.max(r.przychod || 0, 0);
+  const pctStan = Math.min(stan    / rozchod * 100, 100);
+  const pctPrz  = Math.min(przych  / rozchod * 100, Math.max(0, 100 - pctStan));
+  const pct     = Math.min(pctStan + pctPrz, 100);
+  const label   = (pctStan + pctPrz) >= 100 ? '100%' : (pctStan + pctPrz).toFixed(0) + '%';
+  const color   = pct >= 100 ? 'var(--green)' : pct >= 50 ? 'var(--orange)' : 'var(--red)';
+  const tip = `Stan: ${fmt(stan)} (${pctStan.toFixed(0)}%)&#10;Przychód: ${fmt(przych)} (${pctPrz.toFixed(0)}%)&#10;Rozchód: ${fmt(rozchod)}&#10;Pokrycie: ${label}`;
+  return `<div style="display:flex;align-items:center;gap:4px" title="${tip}">
+    <div class="cov-bar">
+      <div class="cov-seg-green" style="width:${pctStan.toFixed(1)}%"></div>
+      <div class="cov-seg-yellow" style="width:${pctPrz.toFixed(1)}%"></div>
+    </div>
+    <span class="cov-pct" style="color:${color}">${label}</span>
+  </div>`;
+}
+
+// Pokrycie jako ułamek 0..1 (do Excela) — spójne z covCell; null gdy brak rozchodu
+function covValue(r) {
+  const rozchod = Math.abs(r.rozchod || 0);
+  if (rozchod === 0) return null;
+  const stan    = Math.max(r.stanil   || 0, 0);
+  const przych  = Math.max(r.przychod || 0, 0);
+  const pctStan = Math.min(stan   / rozchod, 1);
+  const pctPrz  = Math.min(przych / rozchod, Math.max(0, 1 - pctStan));
+  return pctStan + pctPrz;   // 0..1
+}
+
+// ── Status płatności zamówień ($) ─────────────────────────────
+const PAY_COLORS = { OPL: 'var(--green)', COP: 'var(--orange)', NO: 'var(--red)', BLO: 'var(--purple)' };
+function payCell(r) {
+  const ps = r.payStatuses;
+  if (!ps || !ps.length) return '<td class="num pay-cell"></td>';
+  const marks = ps.map(s => {
+    const color = PAY_COLORS[s.kod] || 'var(--text3)';
+    const tip   = `${s.opis || s.kod}${s.count > 1 ? ` — ${s.count} zam.` : ''}`;
+    return `<span class="pay-dollar" style="color:${color}" title="${tip.replace(/"/g,'&quot;')}">$</span>`;
+  }).join('');
+  return `<td class="num pay-cell">${marks}</td>`;
+}
+// Tekstowy opis statusów płatności (do Excela): "Nie opłacone (2); Częściowo opłacone"
+function payStatusText(ps) {
+  if (!ps || !ps.length) return '';
+  return ps.map(s => (s.opis || s.kod) + (s.count > 1 ? ` (${s.count})` : '')).join('; ');
+}
+
+// ── Render table ──────────────────────────────────────────────
+
+function renderTable() {
+  const tbody = document.getElementById('mrpTableBody');
+  const table = document.getElementById('mrpTable');
+  const empty = document.getElementById('emptyState');
+
+  const data = [...filteredMaterials].sort((a, b) => {
+    const va = getSortVal(a), vb = getSortVal(b);
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  // Suma wartości braków (PLN) dla widocznych materiałów — obok przełącznika „Pokaż"
+  let brakiSum = 0, brakiCnt = 0;
+  for (const r of data) { const v = brakiPlnValue(r); if (v != null) { brakiSum += v; brakiCnt++; } }
+  const brakiEl = document.getElementById('brakiSum');
+  if (brakiEl) brakiEl.textContent = brakiCnt ? `Σ braki: ${fmt(brakiSum, 0)} PLN (${brakiCnt} poz.)` : '';
+  const footEl = document.getElementById('mrpTableFoot');
+  if (footEl) footEl.innerHTML = brakiCnt
+    ? `<tr style="border-top:2px solid var(--border);background:var(--bg2)"><td></td><td style="padding:5px 8px;font-weight:800;color:var(--text2)">RAZEM — Σ braki (${brakiCnt} poz.)</td><td colspan="11"></td><td class="num" style="padding:5px 8px;color:var(--red);font-weight:800">${fmt(brakiSum, 0)} PLN</td><td></td></tr>`
+    : '';
+
+  if (data.length === 0) {
+    table.style.display = 'none';
+    empty.style.display = 'block';
+    empty.innerHTML = allMaterials.length > 0
+      ? '<span class="icon">🔍</span>Brak wyników dla aktualnego filtra'
+      : '<span class="icon">📦</span>Wprowadź Symbol ZO i kliknij <strong>▶ Pobierz</strong><br>lub wpisz indeks/nazwę materiału w polu Szukaj';
+    return;
+  }
+
+  table.style.display = '';
+  empty.style.display = 'none';
+
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = data.map((r, idx) => {
+    const cls     = rowClass(r);
+    const active  = selectedRow && selectedRow.indeks === r.indeks && selectedRow.kodLokal === r.kodLokal ? ' active' : '';
+    const selAttr = `onclick="selectRow(${idx})"`;
+    return `<tr class="${cls}${active}" ${selAttr} data-idx="${idx}">
+      <td class="col-indeks" onclick="copyIndeks(event,'${r.indeks}')" title="Kliknij aby skopiować indeks">${r.indeks}</td>
+      <td class="col-nazwa" title="${r.nazwa || ''}">${r.nazwa || ''}</td>
+      <td class="num">${fmt(r.stanil)}</td>
+      <td class="num">${fmt(r.przychod)}</td>
+      <td class="num">${fmt(r.rozchod)}</td>
+      <td class="num col-razem" style="${r.razem < 0 ? 'color:var(--red)' : r.razem > 0 ? 'color:var(--green)' : ''}">${fmt(r.razem)}</td>
+      <td class="num" style="${r.przychNp ? 'color:var(--purple)' : ''}">${fmt(r.przychNp)}</td>
+      <td class="num" style="${r.przychod > 0 ? 'color:var(--green)' : ''}">${fmt(r.przychod)}</td>
+
+      <td class="num" style="color:var(--text3)">${fmt(r.iloscR)}</td>
+      <td class="num" style="${(r.stanil + (r.iloscR||0)) < 0 ? 'color:var(--red);font-weight:700' : (r.stanil + (r.iloscR||0)) > 0 ? 'color:var(--green)' : ''}">${fmt(r.stanil + (r.iloscR||0))}</td>
+      <td style="font-size:10px;${r.dataZam ? (r.dataZam.slice(0,10) < today ? 'color:#FBBF24;font-weight:700' : 'color:var(--green)') : 'color:var(--text3)'}">
+        ${r.dataZam ? (r.dataZam.slice(0,10) < today ? '⚠ ' : '') + fmtDate(r.dataZam) : '—'}</td>
+      ${payCell(r)}
+      <td style="padding:4px 8px">${covCell(r)}</td>
+      ${brakiPlnCell(r)}
+      ${(() => {
+        if (r.leadDays == null) return '<td class="num" style="font-size:10px"></td>';
+        const tyg = Math.ceil(r.leadDays / 7);
+        const tip = (r.leadEst ? `Szacunek wg ${r.leadEst.z} (${r.leadEst.score}%) — ` : 'Najdłuższy lead time z PZ — ') + `${r.leadDays} dni`;
+        const mark = r.leadEst ? '<span style="color:#FBBF24;font-weight:700">~</span>' : '';
+        return `<td class="num" style="font-size:10px;color:var(--text3)" title="${tip.replace(/"/g,'&quot;')}">${mark}${tyg} tyg</td>`;
+      })()}
+    </tr>`;
+  });
+
+  tbody.innerHTML = rows.join('');
+  // Zapisz posortowane dane żeby selectRow działał poprawnie
+  renderTable._data = data;
+}
+
+// ── Select row & load detail ──────────────────────────────────
+
+function selectRow(idx) {
+  const data = renderTable._data;
+  if (!data || !data[idx]) return;
+  const r = data[idx];
+
+  // Visual selection
+  document.querySelectorAll('#mrpTableBody tr').forEach(tr => tr.classList.remove('active'));
+  const tr = document.querySelector(`#mrpTableBody tr[data-idx="${idx}"]`);
+  if (tr) tr.classList.add('active');
+
+  selectedRow = r;
+  loadDetail(r);
+}
+
+async function loadDetail(r) {
+  if (detailLoading) return;
+
+  // Open panel
+  document.getElementById('detailPanel').classList.add('open');
+
+  // Header
+  document.getElementById('detIndeks').textContent = r.indeks;
+  document.getElementById('detNazwa').textContent  = r.nazwa || '';
+  const dbgLink = document.getElementById('detDebugLink');
+  if (dbgLink) dbgLink.href = `/debug.html?indeks=${encodeURIComponent(r.indeks)}`;
+
+  const brakuje = r.brakuje;
+  const badgeClass = brakuje < 0 ? 'red' : brakuje < 5 ? 'orange' : 'green';
+  document.getElementById('detMeta').innerHTML = `
+    <span class="detail-badge">JM: ${r.jm || '—'}</span>
+    <span class="detail-badge">Lok: ${r.kodLokal || '—'}</span>
+    <span class="detail-badge ${badgeClass}">Brakuje: ${fmt(brakuje)}</span>
+    <span class="detail-badge">Stan: ${fmt(r.razem)}</span>
+    ${r.zapasMin ? `<span class="detail-badge">ZapMin: ${fmt(r.zapasMin)}</span>` : ''}
+    ${r.kupiec ? `<span class="detail-badge">Kupiec: ${r.kupiec}</span>` : ''}
+    ${r.leadDays != null ? `<span class="detail-badge" title="Najdłuższy lead time z PZ (${r.leadDays} dni)${r.leadEst ? ' — szacunek wg ' + r.leadEst.z + ' (' + r.leadEst.score + '%)' : ''}">Lead: ${Math.ceil(r.leadDays/7)} tyg${r.leadEst ? ' ~' : ''}</span>` : ''}
+  `;
+
+  // Loading
+  detailLoading = true;
+  document.getElementById('detailLoader').classList.add('active');
+  document.getElementById('detailTable').style.display = 'none';
+  document.getElementById('detailEmpty').style.display = 'none';
+
+  try {
+    const resp = await fetch(`/api/detail?indeks=${encodeURIComponent(r.indeks)}&kodLokal=${encodeURIComponent(r.kodLokal || '01')}`);
+    const data = await resp.json();
+
+    if (!data.ok) throw new Error(data.error || 'Błąd serwera');
+
+    renderDetailTable(data.rows || []);
+
+  } catch (err) {
+    showToast('Błąd szczegółów: ' + err.message, true);
+    document.getElementById('detailEmpty').style.display = 'block';
+  } finally {
+    detailLoading = false;
+    document.getElementById('detailLoader').classList.remove('active');
+  }
+}
+
+function renderDetailTable(rows) {
+  const tbody = document.getElementById('detailTableBody');
+  const table = document.getElementById('detailTable');
+  const empty = document.getElementById('detailEmpty');
+
+  renderDetailTable._lastRows = rows; // cache dla onDateChange
+
+  if (rows.length === 0) {
+    table.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  table.style.display = '';
+  empty.style.display = 'none';
+
+  // Aktualny filtr terminu
+  const today = new Date().toISOString().slice(0, 10);
+  const fDate = document.getElementById('fDate').value; // YYYY-MM-DD lub ''
+  const kat  = document.getElementById('fKat').value.trim().toUpperCase();
+  const rok  = document.getElementById('fRok').value.trim();
+  const symb = document.getElementById('fSymb').value.trim();
+  const prefix = (kat && rok && symb) ? `${kat}-${rok}-${symb}` : null;
+
+  // Priorytet sortowania:
+  // 0 = MAG/stan, 1 = ZAM/przychód, 2 = PRO filtrowane, 3 = PRO pozostałe
+  function sortPriority(r) {
+    const cls = detRowClass(r);
+    const dok = r.dokument || '';
+    if (cls === 'drow-mag') return 0;
+    if (cls === 'drow-zam') return 1;
+    if (cls === 'drow-np') return (r.ilosc > 0 || r.przychNp > 0) ? 1 : 3;
+    if (cls === 'drow-pro') {
+      if (prefix && dok.startsWith(prefix)) return 2;
+      return 3;
+    }
+    return 4;
+  }
+
+  const sorted = [...rows].sort((a, b) => {
+    const pa = sortPriority(a), pb = sortPriority(b);
+    if (pa !== pb) return pa - pb;
+    // W ramach tej samej grupy — wg terminu
+    const ta = a.termin || a.termNadrz || '';
+    const tb = b.termin || b.termNadrz || '';
+    return ta.localeCompare(tb);
+  });
+
+  // Filtruj wiersze: data (PRO powyżej daty ukryj) + LP (PRO inne LP_ZLEC ukryj)
+  const fLpVal  = document.getElementById('fLp').value.trim();
+
+  const filtered = sorted.filter(r => {
+    const cls = detRowClass(r);
+    if (cls === 'drow-mag') return true;
+    if (cls === 'drow-zam' || cls === 'drow-np') return true;
+    // PRO: filtruj po LP_ZLEC (4. człon dokumentu) — porównanie tekstowe, bez względu na wielkość liter
+    if (fLpVal && (cls === 'drow-pro' || cls === 'drow-filtered')) {
+      const dok = r.dokument || '';
+      const parts = dok.split('-');
+      // parts[3] = LP_ZLEC, np. '220', 'AK0', '000'
+      if (parts.length >= 4 && parts[3].trim().toUpperCase() !== fLpVal.toUpperCase()) return false;
+    }
+    // PRO: filtruj po dacie
+    if (fDate) {
+      const t = r.termin || r.termNadrz || '';
+      if (t && t.slice(0, 10) > fDate) return false;
+    }
+    return true;
+  });
+
+  const html = filtered.map(r => {
+    const baseCls = detRowClass(r);
+    const dok     = r.dokument || '';
+    const isFiltered = baseCls === 'drow-pro' && prefix && dok.startsWith(prefix);
+    const cls   = isFiltered ? 'drow-filtered' : baseCls;
+    const label = detRowLabel(r);
+    const np    = r.przychNp || r.rozchodNp;
+    const npTip = np ? ` title="P.NP=${fmt(r.przychNp)} R.NP=${fmt(r.rozchodNp)}"` : '';
+
+    return `<tr class="${cls}"${npTip}>
+      <td><strong>${label}</strong></td>
+      <td class="col-dok mono" title="${dok}" style="max-width:200px">
+        ${dok}
+        ${r.nazwaZw    ? `<div style="font-size:9px;color:var(--green);margin-top:1px;white-space:normal;line-height:1.3">${r.nazwaZw}</div>` : ''}
+        ${r.nazwaKontr ? `<div style="font-size:9px;color:var(--text2);margin-top:1px;white-space:normal;line-height:1.3">🏢 ${r.nazwaKontr}</div>` : ''}
+        ${r.stanZam ? (() => { const k = r.stanZam.kod || ''; const c = k === 'BLO' ? 'var(--red)' : k === 'NO' ? 'var(--orange)' : k === 'OPL' ? 'var(--green)' : 'var(--purple)'; return `<div style="font-size:9px;color:${c};margin-top:1px;white-space:normal;line-height:1.3">● Stan: ${r.stanZam.opis || k}</div>`; })() : ''}
+      </td>
+      <td class="num">${fmt(r.ilosc)}</td>
+      <td style="font-size:10px;${(()=>{const t=fmtDate(r.termin)||fmtDate(r.termNadrz)||''; return t && t < today ? 'color:#FBBF24;font-weight:700' : ''})()}">${(()=>{const t=fmtDate(r.termin)||fmtDate(r.termNadrz)||''; return t ? (t < today ? '⚠ ' : '') + t : ''})()}</td>
+      <td class="num">${r.przychNp ? fmt(r.przychNp) : ''}</td>
+      <td class="num" style="${cls==='drow-zam'?'color:var(--green);font-weight:600':''}">${r.ilosc != null && r.ilosc > 0 ? fmt(r.ilosc) : ''}</td>
+      ${(() => {
+        if (r.wartosc == null) return '<td class="num" style="font-size:10px"></td>';
+        const baseColor = (cls==='drow-pro'||cls==='drow-filtered') ? 'var(--blue)' : 'var(--orange)';
+        const lowConf   = r.est && r.est.score < 75;            // słaby match → czerwony
+        const color     = lowConf ? 'var(--red)' : baseColor;
+        // Przelicz na PLN wg NBP (spójnie z kolumną „Braki PLN" i Excelem)
+        const w      = r.waluta || 'PLN';
+        const rate   = (w === 'PLN') ? 1 : (nbpRates && nbpRates[w] > 0 ? nbpRates[w] : null);
+        const valPln = rate != null ? r.wartosc * rate : null;
+        const valSpan = (valPln != null)
+          ? (w !== 'PLN'
+              ? `<span title="${fmt(r.wartosc,2)} ${w} × ${fmt(rate,4)} (NBP)">${fmt(valPln,2)} <span style="color:var(--text3)">PLN</span></span>`
+              : `${fmt(valPln,2)} <span style="color:var(--text3)">PLN</span>`)
+          : `${fmt(r.wartosc,2)} <span style="color:var(--text3)">${w}</span>`;
+        let mark = '';
+        if (r.est) {
+          const t   = ('Szacunek wg podobnego materiału: ' + r.est.z + ' (' + r.est.score + '%)' + (r.est.nazwa ? ' — ' + r.est.nazwa : '')).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+          const mc  = lowConf ? 'var(--red)' : '#FBBF24';
+          const sym = lowConf ? '⚠' : '!';   // słaby match → wykrzyknik w trójkącie; pewny → zwykły „!"
+          mark = ` <span style="color:${mc};font-weight:700;cursor:help" title="${t}">${sym}</span>`;
+        }
+        return `<td class="num" style="color:${color};font-size:10px">${valSpan}${mark}</td>`;
+      })()}
+      <td style="font-size:10px;color:var(--text3)" title="${r.indWyrob || ''}">${r.indWyrob ? r.indWyrob.slice(0, 20) : ''}</td>
+      <td style="font-size:10px;color:var(--text3)" title="${r.dataDodania || ''}">${r.dataDodania ? r.dataDodania.slice(0, 10) : ''}</td>
+    </tr>`;
+  }).join('');
+
+  tbody.innerHTML = html;
+  document.getElementById('detailScroll').scrollTop = 0;
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('open');
+  selectedRow = null;
+  document.querySelectorAll('#mrpTableBody tr').forEach(tr => tr.classList.remove('active'));
+}
+
+// ── Test connection ───────────────────────────────────────────
+
+async function testConnection() {
+  const btn = document.getElementById('btnTest');
+  btn.disabled = true;
+  btn.textContent = '⏳ Testowanie...';
+  try {
+    const resp = await fetch('/api/test');
+    const data = await resp.json();
+    if (data.ok) {
+      showToast('✅ Połączenie z Firebird OK');
+      btn.textContent = '✅ FB OK';
+    } else {
+      showToast('❌ Błąd FB: ' + data.error, true);
+      btn.textContent = '❌ FB ERR';
+    }
+  } catch (err) {
+    showToast('Błąd połączenia: ' + err.message, true);
+    btn.textContent = '❌ Serwer';
+  } finally {
+    setTimeout(() => { btn.textContent = '🔌 Test FB'; btn.disabled = false; }, 3000);
+  }
+}
+
+// ── Clear filter ──────────────────────────────────────────────
+
+function clearFilter() {
+  document.getElementById('fKat').value   = 'PRO';
+  document.getElementById('fRok').value   = '';
+  document.getElementById('fSymb').value  = '';
+  document.getElementById('fLp').value    = '';
+  document.getElementById('fSearch').value = '';
+  clientFilter = '';
+  allMaterials = [];
+  filteredMaterials = [];
+  quickFilter = 'all';
+  document.getElementById('statCount').textContent = '—';
+  document.getElementById('statShort').textContent = '—';
+  document.getElementById('statWarn').textContent  = '—';
+  document.getElementById('statFilter').style.display = 'none';
+  document.getElementById('statLastUpdate').textContent = '';
+  document.getElementById('mrpTable').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'block';
+  document.getElementById('emptyState').innerHTML = '<span class="icon">📦</span>Wprowadź Symbol ZO i kliknij <strong>▶ Pobierz</strong><br>lub wpisz indeks/nazwę materiału w polu Szukaj';
+  closeDetail();
+}
+
+// Nadaje format liczbowy/walutowy kolumnom arkusza (pomija nagłówek).
+// colFormats: { indeksKolumny: 'kod formatu Excel' }
+function applyNumFmt(ws, colFormats) {
+  if (!ws['!ref']) return;
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let r = 1; r <= range.e.r; r++) {                 // od 1 = pomijamy nagłówek
+    for (const cStr in colFormats) {
+      const ref = XLSX.utils.encode_cell({ c: Number(cStr), r });
+      const cell = ws[ref];
+      if (cell && cell.t === 'n') cell.z = colFormats[cStr];
+    }
+  }
+}
+const FMT_PLN  = '#,##0.00" zł"';   // wartość w PLN
+const FMT_VAL  = '#,##0.00';        // wartość (waluta w osobnej kolumnie)
+const FMT_CENA = '#,##0.0000';      // cena (waluta w osobnej kolumnie)
+const FMT_KURS = '0.0000';
+
+// ── Export Excel ──────────────────────────────────────────────
+
+function exportToExcel() {
+  if (!filteredMaterials.length) {
+    showToast('Brak danych do eksportu', true);
+    return;
+  }
+  if (typeof XLSX === 'undefined') {
+    showToast('Biblioteka XLSX niedostępna — sprawdź połączenie', true);
+    return;
+  }
+  showToast('⏳ Eksport tabeli MRP: cały widok (wszystkie kolumny), jedna pozycja na materiał');
+
+  const fDate = document.getElementById('fDate').value;
+  const kat   = document.getElementById('fKat').value.trim();
+  const rok   = document.getElementById('fRok').value.trim();
+  const symb  = document.getElementById('fSymb').value.trim();
+
+  // Nagłówki
+  const headers = [
+    'Indeks','Nazwa','JM','Stan obecny','Przychód','Rozchód',
+    'Pozostanie','Przych.NP','Przych.P','IL-Zlec','Stan po zlec.','Data ZAM',
+    'Status płatności','Pokrycie','Braki PLN','Lead (tyg.)','Kupiec'
+  ];
+
+  const rows = filteredMaterials.map(r => {
+    const cov   = covValue(r);
+    const braki = brakiPlnValue(r);
+    return [
+      r.indeks   || '',
+      r.nazwa    || '',
+      r.jm       || '',
+      r.stanil   != null ? r.stanil   : '',
+      r.przychod != null ? r.przychod : '',
+      r.rozchod  != null ? r.rozchod  : '',
+      r.razem    != null ? r.razem    : '',
+      r.przychNp != null ? r.przychNp : '',
+      r.przychod != null ? r.przychod : '',
+      r.iloscR   != null ? r.iloscR   : '',
+      (r.stanil || 0) + (r.iloscR || 0),
+      r.dataZam ? r.dataZam.slice(0,10) : '',
+      payStatusText(r.payStatuses),
+      cov   != null ? cov : '',
+      braki != null ? Math.round(braki * 100) / 100 : '',
+      r.leadDays != null ? Math.ceil(r.leadDays / 7) : '',
+      r.kupiec   || '',
+    ];
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+  // Szerokości kolumn
+  ws['!cols'] = [
+    {wch:22},{wch:40},{wch:6},{wch:12},{wch:12},{wch:12},
+    {wch:12},{wch:12},{wch:12},{wch:10},{wch:13},{wch:12},
+    {wch:24},{wch:9},{wch:14},{wch:10},{wch:10}
+  ];
+
+  // Formaty: Pokrycie jako %, Braki PLN jako waluta
+  applyNumFmt(ws, { 13: '0%', 14: FMT_PLN });
+
+  const wb = XLSX.utils.book_new();
+  const sheetName = [kat, rok, symb].filter(Boolean).join('-') || 'MRP';
+  XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0,31));
+
+  const dateStr = new Date().toISOString().slice(0,10);
+  const fileName = `MRP_${sheetName}_${dateStr}.xlsx`;
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob  = new Blob([wbout], { type: 'application/octet-stream' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  showToast(`Eksportowano ${filteredMaterials.length} wierszy → ${fileName}`);
+}
+
+// ── Export Braki (wartość niedoboru netto) ────────────────────
+function exportBrakiToExcel() {
+  if (!filteredMaterials.length) { showToast('Brak danych do eksportu', true); return; }
+  if (typeof XLSX === 'undefined') { showToast('Biblioteka XLSX niedostępna', true); return; }
+  // Komunikat: co generuje ten eksport
+  showToast('⏳ Eksport „Braki": wartość niedoboru NETTO (Stan po zlec. < 0) = |braki| × cena → PLN, jedna pozycja na materiał');
+
+  const kat = document.getElementById('fKat').value.trim();
+  const rok = document.getElementById('fRok').value.trim();
+  const symb = document.getElementById('fSymb').value.trim();
+  const zlabel = z => z === 'pz' ? 'ostatni PZ' : z === 'zam' ? 'zamówienie własne' : z === 'est' ? 'estymata' : '';
+
+  const shortage = filteredMaterials.filter(r => ((r.stanil || 0) + (r.iloscR || 0)) < 0);
+  if (!shortage.length) { showToast('Brak pozycji z niedoborem (Stan po zlec. < 0)', true); return; }
+
+  const headers = ['Indeks','Nazwa','JM','Stan obecny','IL-Zlec','Stan po zlec. (braki)','Cena jedn.','Waluta','Kurs NBP','Źródło','Wartość braków (PLN)','Kupiec','Lead time (tyg.)','Status płatności'];
+  const round = (v,d=4) => v != null ? Math.round(v * 10**d) / 10**d : '';
+  const rows = shortage.map(r => {
+    const spz = (r.stanil || 0) + (r.iloscR || 0);
+    const w = r.cenaJednWaluta || 'PLN';
+    const rate = (w === 'PLN') ? 1 : (nbpRates && nbpRates[w] > 0 ? nbpRates[w] : null);
+    const valPln = (r.cenaJedn && rate != null) ? Math.abs(spz) * r.cenaJedn * rate : null;
+    return [
+      r.indeks||'', r.nazwa||'', r.jm||'',
+      r.stanil != null ? r.stanil : '', r.iloscR != null ? r.iloscR : '', round(spz),
+      round(r.cenaJedn), w, (rate != null && w !== 'PLN') ? round(rate) : '',
+      zlabel(r.cenaJednZrodlo) + (r.cenaJednEst ? ` (${r.cenaJednEst.score}%)` : ''),
+      valPln != null ? Math.round(valPln * 100) / 100 : '', r.kupiec || '',
+      r.leadDays != null ? Math.ceil(r.leadDays / 7) : '',
+      payStatusText(r.payStatuses),
+    ];
+  });
+  rows.sort((a, b) => (Number(b[10]) || 0) - (Number(a[10]) || 0));   // od najdroższych braków
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [{wch:22},{wch:40},{wch:6},{wch:11},{wch:10},{wch:20},{wch:11},{wch:7},{wch:9},{wch:22},{wch:18},{wch:12},{wch:12},{wch:24}];
+  const sum = rows.reduce((s, row) => s + (typeof row[10] === 'number' ? row[10] : 0), 0);
+  const sumRow = new Array(headers.length).fill(''); sumRow[5] = 'SUMA PLN:'; sumRow[10] = Math.round(sum * 100) / 100;
+  XLSX.utils.sheet_add_aoa(ws, [sumRow], { origin: -1 });
+  applyNumFmt(ws, { 6: FMT_CENA, 8: FMT_KURS, 10: FMT_PLN });   // Cena jedn., Kurs NBP, Wartość braków (PLN)
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Braki');
+  const sheetName = [kat, rok, symb].filter(Boolean).join('-') || 'MRP';
+  const fileName = `Braki_${sheetName}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbout], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  showToast(`Eksport Braki: ${rows.length} poz., Σ ${fmt(sum, 2)} PLN → ${fileName}`);
+}
+
+// ── Export PRO positions to Excel ─────────────────────
+
+async function exportProToExcel() {
+  const kat  = document.getElementById('fKat').value.trim().toUpperCase();
+  const rok  = document.getElementById('fRok').value.trim();
+  const symb = document.getElementById('fSymb').value.trim();
+  if (!kat || !rok || !symb) { showToast('Eksport PRO wymaga KAT + ROK + SYMBOL', true); return; }
+  if (!filteredMaterials.length) { showToast('Brak materiałów', true); return; }
+  if (typeof XLSX === 'undefined') { showToast('Biblioteka XLSX niedostępna', true); return; }
+  showToast('⏳ Eksport PRO: zużycie BRUTTO per przewodnik (rozchód × cena) — materiał powtarza się dla każdego przewodnika. Arkusze: wartości + szacunki');
+
+  const btn = document.querySelector('button[onclick="exportProToExcel()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ PRO...'; }
+  try {
+    const indeksy = filteredMaterials.map(r => r.indeks).filter(Boolean);
+    const resp = await fetch('/api/pro-positions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kat, rok, symb, indeksy }),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Błąd serwera');
+    const rows = data.rows || [];
+    if (!rows.length) { showToast('Brak pozycji PRO dla tego zlecenia', true); return; }
+
+    // Status płatności zamówień materiału (z głównej tabeli) — mapowanie po indeksie
+    const payMap = new Map(filteredMaterials.map(m => [m.indeks, m.payStatuses]));
+
+    // Zapytaj o przewalutowanie, jeśli są wartości w obcych walutach
+    let convert = false, rates = null, ratesDate = '';
+    const hasForeign = rows.some(r => r.wartosc != null && r.waluta && r.waluta !== 'PLN');
+    if (hasForeign) {
+      convert = confirm('Przewalutować wartości na złotówki według kursów średnich NBP?\n\nOK = przelicz na PLN\nAnuluj = zostaw waluty oryginalne (EUR/USD/GBP)');
+      if (convert) {
+        try {
+          const rr = await fetch('/api/rates'); const rd = await rr.json();
+          if (rd.ok && rd.rates) { rates = rd.rates; ratesDate = rd.date || ''; }
+          else throw new Error('brak danych NBP');
+        } catch (e) { showToast('Brak kursów NBP — eksport bez przewalutowania', true); convert = false; }
+      }
+    }
+
+    const round2  = v => v != null ? Math.round(v * 100) / 100 : '';
+    const zlabel  = z => z === 'pz' ? 'ostatni PZ' : z === 'zam' ? 'zamówienie własne' : z === 'kartoteka' ? 'kartoteka' : '';
+    const rateOf  = w => (!w || w === 'PLN') ? 1 : (rates && rates[w] > 0 ? rates[w] : null);
+    const kursCel = k => k != null ? Number(k).toFixed(4).replace('.', ',') : '';
+    // Przelicz wiersz na PLN (gdy convert i znamy kurs); inaczej zostaw oryginał
+    const prep = r => {
+      const w = r.waluta || 'PLN';
+      if (!convert || w === 'PLN') return { cena: r.cena, wartosc: r.wartosc, waluta: w, walOrig: w, kurs: null };
+      const k = rateOf(w);
+      if (k == null) return { cena: r.cena, wartosc: r.wartosc, waluta: w, walOrig: w, kurs: null };
+      return { cena: r.cena != null ? r.cena * k : null, wartosc: r.wartosc != null ? r.wartosc * k : null, waluta: 'PLN', walOrig: w, kurs: k };
+    };
+
+    const realRows = rows.filter(r => !r.est);   // wartości z pz/zamówień lub kartoteki
+    const estRows  = rows.filter(r =>  r.est);   // wartości szacowane wg podobieństwa
+
+    // Sumy osobno per waluta (po ewentualnym przeliczeniu)
+    const sumaRows = (rs, colCount) => {
+      const m = {};
+      for (const r of rs) { const c = prep(r); if (c.wartosc != null) m[c.waluta] = (m[c.waluta] || 0) + c.wartosc; }
+      return Object.entries(m).map(([w, s]) => { const a = new Array(colCount).fill(''); a[3] = 'SUMA ' + w + ':'; a[7] = round2(s); return a; });
+    };
+
+    const extraH = convert ? ['Waluta źródł.', 'Kurs NBP'] : [];
+    const extraW = convert ? [{wch:12},{wch:10}] : [];
+    const extra  = c => convert ? [c.walOrig, kursCel(c.kurs)] : [];
+
+    const wb = XLSX.utils.book_new();
+
+    // Arkusz 1 — wartości realne (pz/zamówienia, kartoteka)
+    const h1 = ['Indeks','Nazwa materiału','JM','Nr przewodnika PRO','N_NETTO','Cena','Waluta','Wartość','Źródło','Data dodania', ...extraH, 'Status płatności'];
+    const r1 = realRows.map(r => { const c = prep(r); return [r.indeks||'', r.nazwaMat||'', r.jm||'', r.nrPro||'', round2(r.nNetto), round2(c.cena), c.waluta, round2(c.wartosc), zlabel(r.zrodlo), r.dataDodania||'', ...extra(c), payStatusText(payMap.get(r.indeks))]; });
+    const ws1 = XLSX.utils.aoa_to_sheet([h1, ...r1]);
+    ws1['!cols'] = [{wch:22},{wch:40},{wch:6},{wch:28},{wch:12},{wch:12},{wch:7},{wch:14},{wch:16},{wch:18}, ...extraW, {wch:24}];
+    XLSX.utils.sheet_add_aoa(ws1, sumaRows(realRows, h1.length), { origin: -1 });
+    applyNumFmt(ws1, Object.assign({ 5: FMT_CENA, 7: FMT_VAL }, convert ? { 11: FMT_KURS } : {}));
+    XLSX.utils.book_append_sheet(wb, ws1, 'PRO wartości');
+
+    // Arkusz 2 — wartości szacowane wg podobieństwa
+    if (estRows.length) {
+      const h2 = ['Indeks','Nazwa materiału','JM','Nr przewodnika PRO','N_NETTO','Cena (szac.)','Waluta','Wartość (szac.)','Wg indeksu','Dopasowanie %','Data dodania', ...extraH];
+      const r2 = estRows.map(r => { const c = prep(r); return [r.indeks||'', r.nazwaMat||'', r.jm||'', r.nrPro||'', round2(r.nNetto), round2(c.cena), c.waluta, round2(c.wartosc), r.est.z||'', r.est.score != null ? r.est.score : '', r.dataDodania||'', ...extra(c)]; });
+      const ws2 = XLSX.utils.aoa_to_sheet([h2, ...r2]);
+      ws2['!cols'] = [{wch:22},{wch:40},{wch:6},{wch:28},{wch:12},{wch:12},{wch:7},{wch:14},{wch:22},{wch:12},{wch:18}, ...extraW];
+      XLSX.utils.sheet_add_aoa(ws2, sumaRows(estRows, h2.length), { origin: -1 });
+      applyNumFmt(ws2, Object.assign({ 5: FMT_CENA, 7: FMT_VAL }, convert ? { 12: FMT_KURS } : {}));
+      XLSX.utils.book_append_sheet(wb, ws2, 'PRO szacunki');
+    }
+
+    const suffix   = convert ? `_PLN-NBP${ratesDate ? '-' + ratesDate : ''}` : '';
+    const fileName = `PRO_${kat}-${rok}-${symb}${suffix}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+    const blob  = new Blob([wbout], { type:'application/octet-stream' });
+    const url   = URL.createObjectURL(blob);
+    const a     = document.createElement('a');
+    a.href=url; a.download=fileName; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    showToast(`Eksport PRO${convert ? ' (PLN wg NBP ' + ratesDate + ')' : ''}: ${realRows.length} z wartością, ${estRows.length} szacowanych → ${fileName}`);
+  } catch(err) {
+    showToast('Błąd eksportu PRO: '+err.message, true);
+  } finally {
+    if (btn) { btn.disabled=false; btn.textContent='📄 PRO'; }
+  }
+}
+
+
+
+async function exportZamToExcel() {
+  const kat  = document.getElementById('fKat').value.trim().toUpperCase();
+  const rok  = document.getElementById('fRok').value.trim();
+  const symb = document.getElementById('fSymb').value.trim();
+
+  if (!filteredMaterials.length) {
+    showToast('Brak materiałów do eksportu', true);
+    return;
+  }
+  if (typeof XLSX === 'undefined') {
+    showToast('Biblioteka XLSX niedostępna — sprawdź połączenie', true);
+    return;
+  }
+  showToast('⏳ Eksport ZAM: pozycje zamówień własnych (zakupów) dla materiałów zlecenia');
+
+  const btn = document.querySelector('button[onclick="exportZamToExcel()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ ZAM...'; }
+
+  try {
+    // Wyślij listę indeksów z przefiltrowanej tabeli
+    const indeksy = filteredMaterials.map(r => r.indeks).filter(Boolean);
+
+    const resp = await fetch('/api/zam-positions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kat, rok, symb, indeksy }),
+    });
+    const data = await resp.json();
+    console.log('[ZAM export] response:', data.ok, 'rows:', data.count, data.error || '');
+    if (!data.ok) throw new Error(data.error || 'Błąd serwera');
+
+    const rows = data.rows || [];
+    if (!rows.length) {
+      showToast('Brak pozycji ZAM dla tych materiałów', true);
+      console.warn('[ZAM export] 0 wierszy — sprawdź konsolę serwera');
+      return;
+    }
+    console.log('[ZAM export] przykład wiersza:', rows[0]);
+
+    const headers = [
+      'Indeks', 'Nazwa materiału', 'JM',
+      'Nr zamówienia', 'Nazwa zamówienia', 'Dostawca',
+      'LP', 'Ilość', 'Cena ZAM', 'Waluta', 'Wartość',
+      'Termin', 'Data realizacji', 'Opis pozycji'
+    ];
+
+    const exRows = rows.map(r => [
+      r.indeks      || '',
+      r.nazwaMat    || '',
+      r.jm          || '',
+      r.nrZam       || '',
+      r.nazwaZam    || '',
+      r.nazwaKontr  || '',
+      r.lp          != null ? r.lp       : '',
+      r.ilosc       != null ? r.ilosc    : '',
+      r.cenaZam     != null ? r.cenaZam  : '',
+      r.waluta      || 'PLN',
+      r.wartosc     != null ? r.wartosc  : '',
+      r.termin      ? r.termin.slice(0,10)     : '',
+      r.dataRealiz  ? r.dataRealiz.slice(0,10) : '',
+      r.opis        || '',
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...exRows]);
+    ws['!cols'] = [
+      {wch:22},{wch:40},{wch:6},{wch:18},{wch:30},{wch:35},
+      {wch:5},{wch:10},{wch:11},{wch:7},{wch:12},{wch:12},{wch:14},{wch:30}
+    ];
+
+    // Podsumowanie wartości na końcu
+    const sumWartosc = rows.reduce((s, r) => s + (r.wartosc || 0), 0);
+    const sumRow = ['', '', '', '', '', 'SUMA:', '', '', '', '', sumWartosc, '', '', ''];
+    XLSX.utils.sheet_add_aoa(ws, [sumRow], { origin: -1 });
+    applyNumFmt(ws, { 8: FMT_CENA, 10: FMT_VAL });   // Cena ZAM, Wartość
+
+    const wb = XLSX.utils.book_new();
+    const sheetName = `ZAM_${kat}-${rok}-${symb}`.slice(0, 31);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const fileName = `ZAM_${kat}-${rok}-${symb}_${dateStr}.xlsx`;
+    // Trigger download przez Blob URL (działa we wszystkich przeglądarkach)
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob  = new Blob([wbout], { type: 'application/octet-stream' });
+    const url   = URL.createObjectURL(blob);
+    const a     = document.createElement('a');
+    a.href      = url;
+    a.download  = fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    showToast(`Eksportowano ${rows.length} pozycji ZAM → ${fileName}`);
+
+  } catch (err) {
+    showToast('Błąd eksportu ZAM: ' + err.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📋 ZAM'; }
+  }
+}
+
+// ── Help modal ────────────────────────────────────────────────
+
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('btnTheme').textContent = isLight ? '☀️' : '🌙';
+  try { localStorage.setItem('mrp_theme', isLight ? 'light' : 'dark'); } catch(_) {}
+}
+
+function toggleHelp() {
+  const m = document.getElementById('helpModal');
+  m.style.display = m.style.display === 'none' ? 'flex' : 'none';
+}
+
+// ── Keyboard navigation ───────────────────────────────────────
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeDetail();
+    if (document.getElementById('helpModal').style.display !== 'none') toggleHelp();
+    return;
+  }
+
+  // Enter w polach filtra
+  if (e.key === 'Enter' && ['fKat','fRok','fSymb','fLp'].includes(e.target?.id)) {
+    loadMaterials();
+    return;
+  }
+
+  // Strzałki po tabeli
+  if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && renderTable._data) {
+    e.preventDefault();
+    const data = renderTable._data;
+    let idx = selectedRow ? data.findIndex(r => r.indeks === selectedRow.indeks && r.kodLokal === selectedRow.kodLokal) : -1;
+    if (e.key === 'ArrowDown') idx = Math.min(idx + 1, data.length - 1);
+    else idx = Math.max(idx - 1, 0);
+    if (idx >= 0) {
+      selectRow(idx);
+      // Scroll into view
+      const tr = document.querySelector(`#mrpTableBody tr[data-idx="${idx}"]`);
+      if (tr) tr.scrollIntoView({ block: 'nearest' });
+    }
+  }
+});
+
+// ── Copy indeks to clipboard ─────────────────────────────────
+
+function copyIndeks(e, indeks) {
+  e.stopPropagation(); // nie otwieraj detail
+  // Zaznacz wiersz mimo to
+  const tr = e.currentTarget.closest('tr');
+  if (tr) {
+    const idx = parseInt(tr.dataset.idx);
+    if (!isNaN(idx)) selectRow(idx);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(indeks).then(() => {
+      showToast(`☁️ Skopiowano: ${indeks}`);
+    }).catch(() => fallbackCopy(indeks));
+  } else {
+    fallbackCopy(indeks);
+  }
+}
+
+function fallbackCopy(text) {
+  const el = document.createElement('textarea');
+  el.value = text;
+  el.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+  document.body.appendChild(el);
+  el.select();
+  try { document.execCommand('copy'); showToast(`☁️ Skopiowano: ${text}`); } catch(_) {}
+  el.remove();
+}
+
+// ── Summary panel ───────────────────────────────────────────
+
+let _charts = {};
+
+function toggleSummary() {
+  const panel = document.getElementById('summaryPanel');
+  const open  = panel.style.display !== 'none';
+  if (open) {
+    panel.style.display = 'none';
+    document.getElementById('btnSummary').style.background = '';
+    document.getElementById('btnSummary').style.color = '';
+  } else {
+    if (!filteredMaterials.length) {
+      showToast('Brak danych — najpierw pobierz materiały', true);
+      return;
+    }
+    // zamknij ewentualnie otwartą Analizę dostawcy
+    document.getElementById('supplierPanel').style.display = 'none';
+    const bsup = document.getElementById('btnSupplier'); if (bsup) { bsup.style.background = ''; bsup.style.color = ''; }
+    panel.style.display = 'block';
+    document.getElementById('btnSummary').style.background = 'rgba(37,99,235,.3)';
+    document.getElementById('btnSummary').style.color = '#93C5FD';
+    buildSummary(filteredMaterials);
+  }
+}
+
+// ── Analiza dostawcy — należności do zapłaty wg dostawcy ──────
+let _supplierChart = null;
+async function toggleSupplier() {
+  const panel = document.getElementById('supplierPanel');
+  const btn = document.getElementById('btnSupplier');
+  if (panel.style.display !== 'none') {
+    panel.style.display = 'none';
+    if (btn) { btn.style.background = ''; btn.style.color = ''; }
+    return;
+  }
+  const kat = document.getElementById('fKat').value.trim().toUpperCase();
+  const rok = document.getElementById('fRok').value.trim();
+  const symb = document.getElementById('fSymb').value.trim();
+  if (!kat || !rok || !symb) { showToast('Analiza dostawcy wymaga Symbol ZO (KAT+ROK+SYMBOL)', true); return; }
+  if (!filteredMaterials.length) { showToast('Brak materiałów', true); return; }
+  // zamknij ewentualnie otwarte Podsumowanie
+  document.getElementById('summaryPanel').style.display = 'none';
+  const bs = document.getElementById('btnSummary'); if (bs) { bs.style.background = ''; bs.style.color = ''; }
+  panel.style.display = 'block';
+  if (btn) { btn.style.background = 'rgba(37,99,235,.3)'; btn.style.color = '#93C5FD'; }
+  document.getElementById('supPanelSub').textContent = 'Pobieram zamówienia własne…';
+  document.getElementById('supTable').innerHTML = '';
+  document.getElementById('supKpi').innerHTML = '';
+  if (_supplierChart) { _supplierChart.destroy(); _supplierChart = null; }
+  try {
+    const indeksy = filteredMaterials.map(r => r.indeks).filter(Boolean);
+    const resp = await fetch('/api/zam-positions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kat, rok, symb, indeksy }) });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Błąd serwera');
+    _supRows = data.rows || [];
+    buildSupplierAnalysis(_supRows, document.getElementById('supOnlyThis').checked);
+  } catch (e) {
+    document.getElementById('supPanelSub').textContent = 'Błąd: ' + e.message;
+    showToast('Błąd analizy dostawcy: ' + e.message, true);
+  }
+}
+
+// Przełączenie zakresu (checkbox) — przelicz bez ponownego pobierania
+function onSupScopeChange() {
+  if (_supRows && _supRows.length) buildSupplierAnalysis(_supRows, document.getElementById('supOnlyThis').checked);
+}
+
+let _supDetail = new Map();   // klucz dostawcy / '__BRAK__' -> { nazwa, materialy:[{indeks,nazwa,pln}] }
+let _supRows = [];            // ostatnio pobrane pozycje ZAM (do przeliczenia przy zmianie zakresu)
+
+function buildSupplierAnalysis(rows, onlyThisZlec) {
+  // Zakres: zaznaczony = tylko materiały tego zlecenia; odznaczony = pełne zamówienia (wszystkie materiały powiązanych MAT)
+  const matIdxSet = new Set(filteredMaterials.map(m => m.indeks));
+  const useRows = onlyThisZlec ? rows.filter(r => matIdxSet.has(r.indeks)) : rows;
+  const rate = w => (!w || w === 'PLN') ? 1 : (nbpRates && nbpRates[w] > 0 ? nbpRates[w] : 1);
+  const map = new Map();   // dostawca -> { pln, orders:Set, mat:Map<indeks,{nazwa,pln}> }
+  const zamIndeks = new Set();
+  let totalZam = 0, nPaid = 0;
+  for (const r of useRows) {
+    if (r.indeks) zamIndeks.add(r.indeks);
+    const valPln = (r.wartosc || 0) * rate(r.waluta);
+    if (r.stanKod === 'OPL') { nPaid++; continue; }            // opłacone 100% — pomijamy
+    const dost = (r.nazwaKontr && r.nazwaKontr.trim()) ? r.nazwaKontr.trim() : '(brak dostawcy)';
+    let e = map.get(dost); if (!e) { e = { pln: 0, orders: new Set(), mat: new Map() }; map.set(dost, e); }
+    e.pln += valPln; if (r.nrZam) e.orders.add(r.nrZam);
+    const mi = e.mat.get(r.indeks) || { nazwa: r.nazwaMat || '', pln: 0, orders: new Set() }; mi.pln += valPln; if (r.nrZam) mi.orders.add(r.nrZam); if (!mi.nazwa && r.nazwaMat) mi.nazwa = r.nazwaMat; e.mat.set(r.indeks, mi);
+    totalZam += valPln;
+  }
+
+  // „Brak zamówienia": materiały-braki bez żadnego zamówienia własnego (z głównej listy)
+  let brakPln = 0; const brakMat = new Map();
+  for (const r of filteredMaterials) {
+    if (zamIndeks.has(r.indeks)) continue;
+    const v = brakiPlnValue(r); if (v == null) continue;        // tylko braki z wyceną
+    brakPln += v; brakMat.set(r.indeks, { nazwa: r.nazwa || '', pln: v });
+  }
+
+  // Lista + szczegóły per dostawca
+  _supDetail = new Map();
+  const list = [...map.entries()].map(([dost, e]) => {
+    _supDetail.set(dost, { nazwa: dost, materialy: [...e.mat.entries()].map(([indeks, m]) => ({ indeks, nazwa: m.nazwa, pln: m.pln, nrZam: [...m.orders].join(', ') })) });
+    return { key: dost, dost, pln: e.pln, orders: e.orders.size, isBrak: false };
+  });
+  if (brakPln > 0) {
+    _supDetail.set('__BRAK__', { nazwa: '⚠ Brak zamówienia (do zamówienia)', materialy: [...brakMat.entries()].map(([indeks, m]) => ({ indeks, nazwa: m.nazwa, pln: m.pln, nrZam: '—' })) });
+    list.push({ key: '__BRAK__', dost: '⚠ Brak zamówienia', pln: brakPln, orders: brakMat.size, isBrak: true });
+  }
+  list.sort((a, b) => b.pln - a.pln);
+  const totalNeed = totalZam + brakPln;
+
+  const kat = document.getElementById('fKat').value.trim(), rok = document.getElementById('fRok').value.trim(), symb = document.getElementById('fSymb').value.trim();
+  document.getElementById('supPanelSub').textContent = `${[kat, rok, symb].filter(Boolean).join('-')} — ${map.size} dostawców, ${useRows.length} poz. ZAM` + (onlyThisZlec ? ' (tylko ten zlecenie)' : ' (pełne zamówienia — wszystkie powiązane MAT)') + (brakPln > 0 ? `, ${brakMat.size} braków bez zamówienia` : '');
+  const fmtPLN = v => Math.round(v).toLocaleString('pl-PL') + ' PLN';
+  const kpis = [
+    { label: 'Zamówione — do zapłaty', val: fmtPLN(totalZam), color: '#EF4444', sub: map.size + ' dostawców' },
+    { label: 'Brak zamówienia', val: fmtPLN(brakPln), color: '#F59E0B', sub: brakMat.size + ' materiałów' },
+    { label: 'Razem potrzeba', val: fmtPLN(totalNeed), color: '#8B5CF6', sub: 'zamówione + do zamów.' },
+    { label: 'Opłacone (pominięte)', val: nPaid, color: '#10B981', sub: 'STAN = OPL' },
+  ];
+  document.getElementById('supKpi').innerHTML = kpis.map(k => `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${k.color};border-radius:8px;padding:10px 12px"><div style="font-size:18px;font-weight:800;color:${k.color}">${k.val}</div><div style="font-size:11px;color:var(--text2);margin-top:2px">${k.label}</div><div style="font-size:10px;color:var(--text3)">${k.sub}</div></div>`).join('');
+
+  if (!list.length) { document.getElementById('supTable').innerHTML = '<tr><td style="padding:8px;color:var(--text3)">Brak danych</td></tr>'; if (_supplierChart) { _supplierChart.destroy(); _supplierChart = null; } return; }
+
+  const isDark = !document.body.classList.contains('light');
+  const textColor = isDark ? '#94A3B8' : '#334155';
+  const TOP = 10;
+  const top = list.slice(0, TOP);
+  const rest = list.slice(TOP);
+  const restSum = rest.reduce((s, x) => s + x.pln, 0);
+  const labels = top.map(x => x.dost.length > 26 ? x.dost.slice(0, 26) + '…' : x.dost);
+  const vals = top.map(x => Math.round(x.pln));
+  const sliceKeys = top.map(x => x.key);
+  if (restSum > 0) { labels.push('Pozostali (' + rest.length + ')'); vals.push(Math.round(restSum)); sliceKeys.push(null); }
+  const palette = top.map(x => x.isBrak ? '#F59E0B' : null);
+  const base = ['#EF4444','#10B981','#06B6D4','#8B5CF6','#EC4899','#3B82F6','#84CC16','#F97316','#14B8A6','#DC2626','#64748B'];
+  let bi = 0; const colors = palette.map(c => c || base[bi++ % base.length]); if (restSum > 0) colors.push('#475569');
+  if (_supplierChart) _supplierChart.destroy();
+  _supplierChart = new Chart(document.getElementById('chartSupplier'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderWidth: 0, hoverOffset: 8 }] },
+    options: {
+      maintainAspectRatio: false, cutout: '52%',
+      onClick: (evt, els) => { if (els.length) { const k = sliceKeys[els[0].index]; if (k) showSupplierMaterials(k); } },
+      plugins: { legend: { position: 'bottom', labels: { color: textColor, font: { size: 10 }, padding: 8, boxWidth: 12 } }, tooltip: { callbacks: { label: c => c.label + ': ' + c.parsed.toLocaleString('pl-PL') + ' PLN (' + (totalNeed ? Math.round(c.parsed / totalNeed * 100) : 0) + '%)' } } },
+    },
+  });
+
+  const rowsHtml = list.map((x, i) => {
+    const pct = totalNeed ? (x.pln / totalNeed * 100) : 0;
+    const nameColor = x.isBrak ? 'var(--orange)' : 'var(--text)';
+    return `<tr onclick="showSupplierMaterials('${x.key.replace(/'/g,"\\'")}')" style="border-bottom:1px solid var(--border);cursor:pointer" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''"><td style="padding:4px 6px;color:var(--text3)">${i + 1}</td><td style="padding:4px 6px;color:${nameColor}">${x.dost}</td><td style="padding:4px 6px;text-align:right;color:var(--text3)">${x.orders}</td><td style="padding:4px 6px;text-align:right;font-weight:700;color:var(--red)">${fmtPLN(x.pln)}</td><td style="padding:4px 6px;text-align:right;color:var(--text3)">${pct.toFixed(1)}%</td></tr>`;
+  }).join('');
+  document.getElementById('supTable').innerHTML =
+    `<thead><tr style="border-bottom:2px solid var(--border);color:var(--text2)"><th style="padding:4px 6px;text-align:left">#</th><th style="padding:4px 6px;text-align:left">Dostawca</th><th style="padding:4px 6px;text-align:right">Zam.</th><th style="padding:4px 6px;text-align:right">Wartość</th><th style="padding:4px 6px;text-align:right">Udział</th></tr></thead><tbody>${rowsHtml}<tr style="border-top:2px solid var(--border)"><td></td><td style="padding:6px;font-weight:800">RAZEM</td><td></td><td style="padding:6px;text-align:right;font-weight:800;color:var(--red)">${fmtPLN(totalNeed)}</td><td></td></tr></tbody>`;
+  document.getElementById('supDrill').style.display = 'none';
+}
+
+// Drill-down: materiały wybranego dostawcy / braku zamówienia
+function showSupplierMaterials(key) {
+  const d = _supDetail.get(key); if (!d) return;
+  const fmtPLN = v => Math.round(v).toLocaleString('pl-PL') + ' PLN';
+  const mats = d.materialy.slice().sort((a, b) => b.pln - a.pln);
+  const tot = mats.reduce((s, m) => s + m.pln, 0);
+  document.getElementById('supDrillTitle').textContent = `Materiały — ${d.nazwa} (${mats.length} poz., ${fmtPLN(tot)})`;
+  const rowsHtml = mats.map((m, i) => `<tr style="border-bottom:1px solid var(--border)"><td style="padding:3px 6px;color:var(--text3)">${i + 1}</td><td style="padding:3px 6px;font-family:var(--font-mono);color:var(--teal)">${m.indeks}</td><td style="padding:3px 6px;color:var(--text)">${m.nazwa || ''}</td><td style="padding:3px 6px;font-family:var(--font-mono);color:var(--text2)">${m.nrZam || '—'}</td><td style="padding:3px 6px;text-align:right;font-weight:700;color:var(--red)">${fmtPLN(m.pln)}</td></tr>`).join('');
+  document.getElementById('supDrillTable').innerHTML = `<thead><tr style="border-bottom:2px solid var(--border);color:var(--text2)"><th style="padding:3px 6px;text-align:left">#</th><th style="padding:3px 6px;text-align:left">Indeks</th><th style="padding:3px 6px;text-align:left">Nazwa</th><th style="padding:3px 6px;text-align:left">Nr zamówienia (MAT)</th><th style="padding:3px 6px;text-align:right">Wartość (PLN)</th></tr></thead><tbody>${rowsHtml}</tbody>`;
+  const dr = document.getElementById('supDrill'); dr.style.display = 'block'; dr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function buildSummary(data) {
+  // --- Pomocnicze ---
+  const rozchodAbs = r => Math.abs(r.rozchod || 0);
+  const hasPrzychod = r => (r.przychod || 0) > 0 || (r.przychNp || 0) > 0;
+  const stanPoZlec  = r => (r.stanil || 0) + (r.iloscR || 0);
+  // Wartość = |iloscR| * cenaZak1 (ile trzeba * cena zakupu)
+  const wartoscNeed = r => Math.abs(r.iloscR || 0) * Math.abs(r.cenaZak1 || r.cenaKoszt || 0);
+  // Wartość już w przychodzie = przychod * cenaZak1
+  const wartoscPrzych = r => Math.max(r.przychod || 0, 0) * Math.abs(r.cenaZak1 || r.cenaKoszt || 0);
+
+  // --- Grupy ---
+  // 1. Bez żadnego przychodu (przychod=0 i przychNp=0)
+  const bezPrzych = data.filter(r => !hasPrzychod(r) && rozchodAbs(r) > 0);
+  // 2. Z przychodem który zaspokoi zapotrzebowanie (stan+przychod >= |iloscR|)
+  const zPrzychOK = data.filter(r => hasPrzychod(r) && r.iloscR != null &&
+    (r.stanil||0) + Math.max(r.przychod||0,0) + Math.max(r.przychNp||0,0) >= Math.abs(r.iloscR||0));
+  // 3. Z przychodem ale nie wystarczy
+  const zPrzychNieWystarczy = data.filter(r => hasPrzychod(r) && r.iloscR != null &&
+    (r.stanil||0) + Math.max(r.przychod||0,0) + Math.max(r.przychNp||0,0) < Math.abs(r.iloscR||0));
+  // 4. OK bez przychodu (stan wystarczy)
+  const okBezPrzych = data.filter(r => !hasPrzychod(r) && stanPoZlec(r) >= 0 && rozchodAbs(r) > 0);
+
+  // --- Wartości ---
+  const sumWartoscNeed   = data.reduce((s,r) => s + wartoscNeed(r), 0);
+  const sumWartoscPrzych = data.reduce((s,r) => s + wartoscPrzych(r), 0);
+  const sumWartoscBrak   = data.filter(r => stanPoZlec(r) < 0)
+    .reduce((s,r) => s + Math.abs(stanPoZlec(r)) * Math.abs(r.cenaZak1||r.cenaKoszt||0), 0);
+
+  // --- Asortyment (pierwsze 4 znaki indeksu) ---
+  const asortMap = {};
+  data.forEach(r => {
+    if (!r.indeks) return;
+    const key = r.indeks.slice(0,4).toUpperCase();
+    if (!asortMap[key]) asortMap[key] = { need: 0, przych: 0, brak: 0, cnt: 0 };
+    asortMap[key].need   += wartoscNeed(r);
+    asortMap[key].przych += wartoscPrzych(r);
+    asortMap[key].brak   += stanPoZlec(r) < 0 ? Math.abs(stanPoZlec(r)) * Math.abs(r.cenaZak1||r.cenaKoszt||0) : 0;
+    asortMap[key].cnt++;
+  });
+  const asortKeys = Object.keys(asortMap).sort((a,b) => asortMap[b].need - asortMap[a].need).slice(0,12);
+
+  // --- Sub info ---
+  const kat  = document.getElementById('fKat').value.trim();
+  const rok  = document.getElementById('fRok').value.trim();
+  const symb = document.getElementById('fSymb').value.trim();
+  const lp   = document.getElementById('fLp').value.trim();
+  document.getElementById('sumPanelSub').textContent =
+    [kat, rok, symb, lp].filter(Boolean).join('-') + ' — ' + data.length + ' materiałów';
+
+  // --- KPI tiles ---
+  const fmtPLN = v => v > 0 ? v.toLocaleString('pl-PL',{maximumFractionDigits:0}) + ' PLN' : '—';
+  const kpis = [
+    { label: 'Bez przychodu w ogóle',    val: bezPrzych.length,              color: '#EF4444',  sub: 'brak zamowień' },
+    { label: 'Przychód wystarczy',        val: zPrzychOK.length,              color: '#10B981',  sub: 'zlecenie pokryte' },
+    { label: 'Przychód za mały',         val: zPrzychNieWystarczy.length,    color: '#F59E0B',  sub: 'potrzeba dozów.' },
+    { label: 'Stan wystarczy',             val: okBezPrzych.length,            color: '#06B6D4',  sub: 'bez zamowień' },
+    { label: 'Wartość zapotrzebowania',   val: fmtPLN(sumWartoscNeed),        color: '#8B5CF6',  sub: '|IL-ZLEC| × cena' },
+    { label: 'Wartość w przychodzie',     val: fmtPLN(sumWartoscPrzych),      color: '#10B981',  sub: 'zamawiane' },
+    { label: 'Wartość do zamówienia',    val: fmtPLN(sumWartoscBrak),        color: '#EF4444',  sub: 'niedobory × cena' },
+    { label: 'Pokrycie wartości',          val: sumWartoscNeed > 0 ? (sumWartoscPrzych/sumWartoscNeed*100).toFixed(0)+'%' : '—', color: '#F59E0B', sub: 'przychód / zapotrzeb.' },
+  ];
+  document.getElementById('sumKpi').innerHTML = kpis.map(k => `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">${k.label}</div>
+      <div style="font-size:18px;font-weight:800;color:${k.color};line-height:1.2">${k.val}</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px">${k.sub}</div>
+    </div>`).join('');
+
+  // --- Chart defaults ---
+  const isDark    = !document.body.classList.contains('light');
+  const textColor = isDark ? '#94A3B8' : '#334155';
+  const gridColor = isDark ? 'rgba(51,65,85,.5)' : 'rgba(148,163,184,.3)';
+  const baseOpts  = {
+    maintainAspectRatio: false,
+    color: textColor,
+    plugins: { legend: { labels: { color: textColor, font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { color: textColor, font:{size:10} }, grid: { color: gridColor } },
+      y: { ticks: { color: textColor, font:{size:10} }, grid: { color: gridColor } },
+    },
+  };
+
+  Object.values(_charts).forEach(c => c.destroy());
+  _charts = {};
+
+  // --- Chart 1: Kołowy — zamówienia wg terminu ---
+  const today = new Date().toISOString().slice(0,10);
+  const cntPoTerminie   = data.filter(r => r.dataZam && r.dataZam.slice(0,10) < today && (r.przychod||0) > 0).length;
+  const cntWTerminie    = data.filter(r => r.dataZam && r.dataZam.slice(0,10) >= today && (r.przychod||0) > 0).length;
+  const cntNieZamow = data.filter(r =>
+    (r.przychod||0) === 0 && (r.przychNp||0) === 0 &&
+    ((r.stanil||0) + (r.iloscR||0)) < 0
+  ).length;
+  const cntNpOnly       = data.filter(r => !(r.przychod > 0) && (r.przychNp||0) > 0).length;
+  _charts.pie = new Chart(document.getElementById('chartCovDist'), {
+    type: 'doughnut',
+    data: {
+      labels: [
+        'Po terminie (' + cntPoTerminie + ')',
+        'W terminie (' + cntWTerminie + ')',
+        'Niepotwierdzone (' + cntNpOnly + ')',
+        'Niezamówione (' + cntNieZamow + ')',
+      ],
+      datasets: [{
+        data: [cntPoTerminie, cntWTerminie, cntNpOnly, cntNieZamow],
+        backgroundColor: ['#EF4444', '#10B981', '#8B5CF6', '#64748B'],
+        borderWidth: 0, hoverOffset: 8,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      cutout: '55%',
+      plugins: { legend: { position: 'bottom', labels: { color: textColor, font:{size:11}, padding:10, boxWidth:12 } } },
+    },
+  });
+
+  // --- Chart 2: Kołowy — ilość wg źródła pokrycia ---
+  const sumStan    = data.reduce((s,r) => s + Math.max(r.stanil||0, 0), 0);
+  const sumPrzychP = data.reduce((s,r) => s + Math.max(r.przychod||0, 0), 0);
+  const sumPrzychNP= data.reduce((s,r) => s + Math.max(r.przychNp||0, 0), 0);
+  const sumNieZam  = data.filter(r => stanPoZlec(r) < 0).reduce((s,r) => s + Math.abs(stanPoZlec(r)), 0);
+  _charts.status = new Chart(document.getElementById('chartStatus'), {
+    type: 'doughnut',
+    data: {
+      labels: [
+        'Stan mag. (' + fmt(sumStan,0) + ')',
+        'Potwierdzone (' + fmt(sumPrzychP,0) + ')',
+        'Niepotwierdzone (' + fmt(sumPrzychNP,0) + ')',
+        'Niezamówione (' + fmt(sumNieZam,0) + ')',
+      ],
+      datasets: [{
+        data: [sumStan, sumPrzychP, sumPrzychNP, sumNieZam],
+        backgroundColor: ['#06B6D4', '#10B981', '#8B5CF6', '#EF4444'],
+        borderWidth: 0, hoverOffset: 8,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      cutout: '55%',
+      plugins: { legend: { position: 'bottom', labels: { color: textColor, font:{size:11}, padding:10, boxWidth:12 } } },
+    },
+  });
+
+  // --- Chart 3: Top 10 niedoborów (wartościowo) ---
+  const top10val = [...data]
+    .filter(r => stanPoZlec(r) < 0 && (r.cenaZak1||r.cenaKoszt||0) > 0)
+    .sort((a,b) => (Math.abs(stanPoZlec(b))*Math.abs(b.cenaZak1||b.cenaKoszt||0)) - (Math.abs(stanPoZlec(a))*Math.abs(a.cenaZak1||a.cenaKoszt||0)))
+    .slice(0,10);
+  _charts.topVal = new Chart(document.getElementById('chartTopShort'), {
+    type: 'bar',
+    data: {
+      labels: top10val.map(r => r.indeks),
+      datasets: [{ label: 'Wartość niedoboru', data: top10val.map(r => Math.abs(stanPoZlec(r)) * Math.abs(r.cenaZak1||r.cenaKoszt||0)),
+        backgroundColor: '#EF4444', borderRadius:3, borderWidth:0 }],
+    },
+    options: { ...baseOpts, indexAxis:'y',
+      plugins: { legend:{display:false},
+        tooltip: { callbacks: { label: ctx => {
+          const r = top10val[ctx.dataIndex];
+          return [
+            'Wartość: ' + ctx.raw.toLocaleString('pl-PL',{maximumFractionDigits:0}) + ' PLN',
+            'Niedobrór: ' + fmt(Math.abs(stanPoZlec(r))),
+            'Cena: ' + fmt(r.cenaZak1||r.cenaKoszt),
+            r.nazwa ? r.nazwa.slice(0,45) : ''
+          ].filter(Boolean);
+        }}}},
+      scales: { x:{ ...baseOpts.scales.x, beginAtZero:true, ticks:{...baseOpts.scales.x.ticks, callback:v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'k':v} },
+        y:{ ticks:{ color:'#06B6D4', font:{size:10,family:'JetBrains Mono,Consolas,monospace'} }, grid:{color:gridColor} } },
+    },
+  });
+
+  // --- Chart 4: Wartość zapotrzebowania vs przychodu (wg asortymentu) — poziomy dla czytelności ---
+  const asortAll = Object.keys(asortMap).sort((a,b)=>asortMap[b].need-asortMap[a].need);
+  _charts.asortH = new Chart(document.getElementById('chartTopRozch'), {
+    type: 'bar',
+    data: {
+      labels: asortAll,
+      datasets: [
+        { label: 'W przychodzie (PLN)', data: asortAll.map(k=>asortMap[k].przych), backgroundColor:'rgba(16,185,129,.8)',  borderRadius:3, borderWidth:0 },
+        { label: 'Do zamówienia (PLN)', data: asortAll.map(k=>asortMap[k].brak),   backgroundColor:'rgba(239,68,68,.75)', borderRadius:3, borderWidth:0 },
+      ],
+    },
+    options: { ...baseOpts, indexAxis:'y',
+      plugins: { legend:{ position:'top', labels:{ color:textColor, font:{size:10}, boxWidth:10 }},
+        tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+ctx.raw.toLocaleString('pl-PL',{maximumFractionDigits:0})+' PLN',
+          afterTitle: items => 'Asortyment: ' + items[0].label + ' (' + (asortMap[items[0].label]?.cnt||0) + ' poz.)' }}},
+      scales: {
+        x:{ ...baseOpts.scales.x, beginAtZero:true, stacked:false, ticks:{...baseOpts.scales.x.ticks, callback:v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'k':v} },
+        y:{ ticks:{ color:'#F59E0B', font:{size:11,weight:'bold'} }, grid:{color:gridColor} },
+      },
+    },
+  });
+
+  // Ukryj nieużywane canvasy
+  document.getElementById('chartTopZlec').closest('div').style.display='none';
+  document.getElementById('chartZlecCov').closest('div').style.display='none';
+}
+
+// ── Init ──────────────────────────────────────────────────────
+// Inicjalizacja przy załadowaniu
+// ── Kursy walut (NBP) w nagłówku ──────────────────────────────
+let nbpRates = null;   // { EUR, USD, GBP } — kursy średnie NBP (PLN za 1 jedn.)
+async function loadRates() {
+  try {
+    const resp = await fetch('/api/rates');
+    const d = await resp.json();
+    if (!d.ok || !d.rates) return;
+    nbpRates = d.rates;
+    const sym = { EUR: '€', USD: '$', GBP: '£' };
+    const box = document.getElementById('ratesBox');
+    if (!box) return;
+    box.querySelectorAll('span[data-c]').forEach(s => {
+      const c = s.getAttribute('data-c'), v = d.rates[c];
+      s.textContent = (sym[c] || c) + ' ' + (v != null ? Number(v).toFixed(4).replace('.', ',') : '—');
+    });
+    box.title = `Kursy średnie NBP (PLN) — tabela z ${d.date || '?'}`;
+    // Jeśli tabela już wyświetlona — przelicz kolumnę „Braki PLN"
+    if (typeof filteredMaterials !== 'undefined' && filteredMaterials && filteredMaterials.length) renderTable();
+  } catch (_) { /* brak internetu — zostaw placeholdery „—" */ }
+}
+
+// Wartość braków przeliczona na PLN: |Stan po zlec.| × cena × kurs NBP
+// Wartość braków w PLN dla wiersza (liczba) lub null gdy nie-brak / brak ceny/kursu
+function brakiPlnValue(r) {
+  const stanPoZlec = (r.stanil || 0) + (r.iloscR || 0);
+  if (stanPoZlec >= 0) return null;
+  const price = r.cenaJedn || 0;
+  if (!price) return null;
+  const w = r.cenaJednWaluta || 'PLN';
+  const rate = (w === 'PLN') ? 1 : (nbpRates && nbpRates[w] > 0 ? nbpRates[w] : null);
+  if (rate == null) return null;
+  return Math.abs(stanPoZlec) * price * rate;
+}
+
+function brakiPlnCell(r) {
+  const stanPoZlec = (r.stanil || 0) + (r.iloscR || 0);
+  if (stanPoZlec >= 0) return '<td class="num" style="font-size:10px"></td>';
+  // Cena jednostkowa z kaskady (z backendu): ostatni PZ → zamówienie → estymata
+  const price = r.cenaJedn || 0;
+  if (!price) return '<td class="num" style="font-size:10px;color:var(--text3)" title="Brak ceny">—</td>';
+  const w = r.cenaJednWaluta || 'PLN';
+  const rate = (w === 'PLN') ? 1 : (nbpRates && nbpRates[w] > 0 ? nbpRates[w] : null);
+  if (rate == null) return `<td class="num" style="font-size:10px;color:var(--text3)" title="Brak kursu ${w}">—</td>`;
+  const val = Math.abs(stanPoZlec) * price * rate;
+  let tip = `${fmt(Math.abs(stanPoZlec))} × ${fmt(price, 2)} ${w}` + (w !== 'PLN' ? ` × ${fmt(rate, 4)} (NBP)` : '');
+  let mark = '';
+  const est = r.cenaJednEst;
+  if (est) {                       // wartość szacowana wg podobnego materiału
+    tip = `Szacunek wg ${est.z} (${est.score}%) — ${tip}`;
+    const low = est.score < 75;
+    mark = ` <span style="color:${low ? 'var(--red)' : '#FBBF24'};font-weight:700;cursor:help">${low ? '⚠' : '!'}</span>`;
+  }
+  return `<td class="num" style="font-size:10px;color:var(--red);font-weight:600" title="${tip.replace(/"/g,'&quot;')}">${fmt(val, 0)}${mark}</td>`;
+}
+
+window.addEventListener('load', () => {
+  document.getElementById('fRok').value  = new Date().getFullYear();
+  loadRates();
+  setInterval(loadRates, 30 * 60 * 1000);   // odśwież co 30 min
+  // Przywróć motyw
+  try {
+    if (localStorage.getItem('mrp_theme') === 'light') {
+      document.body.classList.add('light');
+      document.getElementById('btnTheme').textContent = '☀️';
+    }
+  } catch(_) {}
+  // Przywróć z sessionStorage (opcjonalnie)
+  const saved = sessionStorage.getItem('mrp_filter');
+  if (saved) {
+    try {
+      const f = JSON.parse(saved);
+      if (f.kat)  document.getElementById('fKat').value  = f.kat;
+      if (f.rok)  document.getElementById('fRok').value  = f.rok;
+      if (f.symb) document.getElementById('fSymb').value = f.symb;
+      if (f.lp)   document.getElementById('fLp').value   = f.lp;
+    } catch(_) {}
+  }
+});
+
+// Zapisz filtr przed opuszczeniem strony
+window.addEventListener('beforeunload', () => {
+  sessionStorage.setItem('mrp_filter', JSON.stringify({
+    kat:  document.getElementById('fKat').value,
+    rok:  document.getElementById('fRok').value,
+    symb: document.getElementById('fSymb').value,
+    lp:   document.getElementById('fLp').value,
+  }));
+});
+</script>
+</body>
+</html>

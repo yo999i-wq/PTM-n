@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>MRP Debug — Europa Systems</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0F172A;color:#F1F5F9;font-size:13px;padding:20px}
+h1{color:#06B6D4;margin-bottom:16px}
+h2{color:#94A3B8;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin:20px 0 8px;border-bottom:1px solid #334155;padding-bottom:4px}
+.search{display:flex;gap:8px;margin-bottom:20px}
+.search input{padding:7px 12px;background:#1E293B;border:1px solid #334155;border-radius:6px;color:#F1F5F9;font-size:13px;width:280px;font-family:monospace}
+.search button{padding:7px 16px;background:#2563EB;border:none;border-radius:6px;color:white;cursor:pointer;font-weight:600}
+.card{background:#1E293B;border:1px solid #334155;border-radius:8px;padding:14px;margin-bottom:14px}
+.karta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.kv{background:#263548;border-radius:5px;padding:8px 10px}
+.kv .label{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.4px}
+.kv .val{font-size:13px;font-weight:700;color:#F1F5F9;margin-top:2px;font-family:monospace}
+.kv .val.eur{color:#F59E0B}
+.kv .val.pln{color:#10B981}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#0F172A;padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase;color:#64748B;border-bottom:1px solid #334155;white-space:nowrap;text-align:left}
+td{padding:4px 8px;border-bottom:1px solid rgba(51,65,85,.4);font-family:monospace}
+td.num{text-align:right}
+.diff{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.diff-box{background:#1E293B;border-radius:8px;padding:12px;border:1px solid #334155}
+.diff-box h3{font-size:11px;text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px}
+.diff-box.zam h3{color:#10B981}
+.diff-box.pro h3{color:#2563EB}
+.highlight{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:4px;padding:8px 12px;margin-top:10px;font-size:12px;color:#FCA5A5}
+.note{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:4px;padding:8px 12px;margin-top:8px;font-size:11px;color:#FCD34D}
+#loading{color:#94A3B8;padding:20px}
+</style>
+</head>
+<body>
+<h1>🔍 Diagnostyka wartości ZAM vs PRO</h1>
+
+<div class="search">
+  <input id="indeksInput" type="text" placeholder="Wpisz indeks np. DDRAALDP1X2002" value="">
+  <button onclick="loadDebug()">Sprawdź</button>
+</div>
+
+<div id="output"></div>
+
+<script>
+function fmt(v, dec=4) {
+  if (v == null) return '—';
+  const n = Number(v);
+  if (isNaN(n)) return String(v);
+  return n.toLocaleString('pl-PL', {maximumFractionDigits: dec});
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return String(d).slice(0,10);
+}
+
+async function loadDebug() {
+  const indeks = document.getElementById('indeksInput').value.trim().toUpperCase();
+  if (!indeks) return;
+  const out = document.getElementById('output');
+  out.innerHTML = '<div id="loading">⏳ Pobieranie danych...</div>';
+
+  try {
+    const resp = await fetch('/api/debug?indeks=' + encodeURIComponent(indeks));
+    const data = await resp.json();
+    if (!data.ok) { out.innerHTML = `<div class="highlight">Błąd: ${data.error}</div>`; return; }
+    renderDebug(data);
+  } catch(e) {
+    out.innerHTML = `<div class="highlight">Błąd połączenia: ${e.message}</div>`;
+  }
+}
+
+function renderDebug(d) {
+  const k = d.karta[0] || {};
+  const cenaZak1 = k.CENA_ZAK1 != null ? Number(k.CENA_ZAK1) : null;
+  const cenaKoszt = k.CENA_KOSZT != null ? Number(k.CENA_KOSZT) : null;
+  const waluta = k.WALUTA || 'PLN';
+
+  let html = '';
+
+  // === KARTA MATERIAŁOWA ===
+  html += `<h2>📋 Karta materiałowa — ${d.indeks}</h2>
+  <div class="card">
+    <div class="karta-grid">
+      <div class="kv"><div class="label">Indeks</div><div class="val">${k.INDEKS||'—'}</div></div>
+      <div class="kv"><div class="label">Nazwa</div><div class="val" style="font-size:11px;font-family:sans-serif">${k.NAZWA||'—'}</div></div>
+      <div class="kv"><div class="label">JM</div><div class="val">${k.JM||'—'}</div></div>
+      <div class="kv"><div class="label">Waluta karty</div><div class="val eur">${waluta}</div></div>
+      <div class="kv"><div class="label">CENA_ZAK1 (M_KIMMAG)</div><div class="val pln">${fmt(k.CENA_ZAK1)} PLN</div></div>
+      <div class="kv"><div class="label">CENA_ZAK2 (M_KIMMAG)</div><div class="val">${fmt(k.CENA_ZAK2)} PLN</div></div>
+      <div class="kv"><div class="label">CENA_KOSZT (M_KIMWSP)</div><div class="val pln">${fmt(k.CENA_KOSZT)} PLN</div></div>
+    </div>
+    <div class="note">⚠️ CENA_ZAK1/CENA_KOSZT są w PLN (przeliczone ewidencyjnie). Waluta karty (${waluta}) dotyczy cen zakupu w oryginalnej walucie — tych nie przechowuje M_KIMMAG bezpośrednio.</div>
+  </div>`;
+
+  // === PORÓWNANIE ZAM vs PRO ===
+  const zamSP = d.sp.filter(r => r.RODZAJ === 'W' || r.RODZAJ === 'w');
+  const proSP = d.sp.filter(r => r.RODZAJ === 'R' || r.RODZAJ === 'r');
+
+  const zamPozFirst = d.zamPoz[0];
+  const proFirst    = proSP[0];
+
+  html += `<h2>⚖️ Porównanie źródeł wartości</h2>
+  <div class="diff">
+    <div class="diff-box zam">
+      <h3>🟢 ZAM — M_ZAMWLASNEPOZ (wartość zamówienia)</h3>`;
+
+  if (zamPozFirst) {
+    const il = Number(zamPozFirst.ILOSC);
+    const cena = Number(zamPozFirst.CENA_ZAM);
+    const wart = Number(zamPozFirst.WARTOSC_ZAM);
+    html += `<table>
+      <tr><th>Pole</th><th>Wartość</th><th>Źródło</th></tr>
+      <tr><td>Nr ZAM</td><td>${zamPozFirst.NR_ZAM}</td><td>M_ZAMWLASNEPOZ.KATEGORIA+ROK+SYMBOL+LP</td></tr>
+      <tr><td>Ilość</td><td class="num">${fmt(il)}</td><td>M_ZAMWLASNEPOZ.ILOSC</td></tr>
+      <tr><td>Cena ZAM</td><td class="num" style="color:#F59E0B">${fmt(cena)} <b>${zamPozFirst.JM||''}</b></td><td>M_ZAMWLASNEPOZ.CENA_ZAM</td></tr>
+      <tr><td>Wartość ZAM</td><td class="num" style="color:#10B981;font-size:13px"><b>${fmt(wart, 2)}</b></td><td>ILOSC × CENA_ZAM</td></tr>
+      <tr><td>Termin</td><td>${fmtDate(zamPozFirst.TERMIN)}</td><td>M_ZAMWLASNEPOZ.TERMIN</td></tr>
+    </table>
+    <div class="note">💡 W aplikacji MRP waluta ZAM pochodzi z M_KIMWSP.WALUTA (${waluta}), bo M_ZAMWLASNEPOZ nie ma pola WALUTA w tej bazie.</div>`;
+  } else {
+    html += '<div style="color:#64748B;padding:8px">Brak pozycji ZAM dla tego indeksu</div>';
+  }
+
+  html += `</div>
+    <div class="diff-box pro">
+      <h3>🔵 PRO — M_KSM_MRP × CENA_ZAK1 (wartość ewidencyjna)</h3>`;
+
+  if (proFirst) {
+    const ilosc = Math.abs(Number(proFirst.ILOSC));
+    const cenaApp = cenaZak1 || cenaKoszt || 0;
+    const wartApp  = ilosc * cenaApp;
+    html += `<table>
+      <tr><th>Pole</th><th>Wartość</th><th>Źródło</th></tr>
+      <tr><td>Nr PRO</td><td>${proFirst.DOKUMENT}</td><td>MP_KSMMRP_SZCZLOK.DOKUMENT</td></tr>
+      <tr><td>Ilość (|ILOSC|)</td><td class="num">${fmt(ilosc)}</td><td>ABS(MP_KSMMRP_SZCZLOK.ILOSC)</td></tr>
+      <tr><td>CENA_ZAK1</td><td class="num">${fmt(cenaZak1)} PLN</td><td>M_KIMMAG.CENA_ZAK1</td></tr>
+      <tr><td>CENA_KOSZT</td><td class="num">${fmt(cenaKoszt)} PLN</td><td>M_KIMWSP.CENA_KOSZT</td></tr>
+      <tr><td>Wartość PRO (app)</td><td class="num" style="color:#2563EB;font-size:13px"><b>${fmt(wartApp, 2)} PLN</b></td><td>|ILOSC| × CENA_ZAK1</td></tr>
+      <tr><td>CENA w SP</td><td class="num" style="color:#8B5CF6">${fmt(proFirst.CENA)}</td><td>MP_KSMMRP_SZCZLOK.CENA</td></tr>
+      <tr><td>Wartość wg SP.CENA</td><td class="num" style="color:#8B5CF6">${fmt(ilosc * (Number(proFirst.CENA)||0), 2)}</td><td>|ILOSC| × SP.CENA</td></tr>
+    </table>
+    <div class="note">💡 SP.CENA to cena ewidencyjna z dokumentu — może być bliżej rzeczywistości niż CENA_ZAK1 z karty.</div>`;
+  } else {
+    html += '<div style="color:#64748B;padding:8px">Brak pozycji PRO dla tego indeksu</div>';
+  }
+
+  html += `</div></div>`;
+
+  // === WSZYSTKIE POZYCJE ZAM ===
+  html += `<h2>📦 Pozycje zamówień M_ZAMWLASNEPOZ (ostatnie 20)</h2>
+  <div class="card"><table>
+    <tr><th>Nr ZAM</th><th>LP</th><th class="num">Ilość</th><th class="num">Cena ZAM</th><th class="num">Wartość</th><th>JM</th><th>Termin</th></tr>`;
+  if (d.zamPoz.length === 0) {
+    html += '<tr><td colspan="7" style="color:#64748B;padding:8px">Brak danych</td></tr>';
+  } else {
+    for (const r of d.zamPoz) {
+      html += `<tr>
+        <td style="color:#6EE7B7">${r.NR_ZAM}</td>
+        <td class="num">${r.LP_ZAM}</td>
+        <td class="num">${fmt(r.ILOSC)}</td>
+        <td class="num" style="color:#F59E0B">${fmt(r.CENA_ZAM)}</td>
+        <td class="num" style="color:#10B981">${fmt(r.WARTOSC_ZAM, 2)}</td>
+        <td>${r.JM||''}</td>
+        <td>${fmtDate(r.TERMIN)}</td>
+      </tr>`;
+    }
+  }
+  html += '</table></div>';
+
+  // === SP SZCZEGÓŁÓW ===
+  html += `<h2>📊 Stored Procedure MP_KSMMRP_SZCZLOK (pierwsze 20 wierszy)</h2>
+  <div class="card"><table>
+    <tr><th>Typ</th><th>Dokument</th><th class="num">Ilość</th><th class="num">ILOSC_R</th><th class="num">CENA (w SP)</th><th class="num">Wartość SP</th><th>Termin</th></tr>`;
+  for (const r of d.sp) {
+    const typ = r.RODZAJ === 'W' ? '🟢 ZAM' : r.RODZAJ === 'R' ? '🔵 PRO' : '⚫ MAG';
+    const il = Math.abs(Number(r.ILOSC)||0);
+    const cena = Number(r.CENA)||0;
+    const wartSP = il * cena;
+    html += `<tr>
+      <td>${typ}</td>
+      <td style="font-size:10px;color:${r.RODZAJ==='W'?'#6EE7B7':'#7DD3FC'}">${r.DOKUMENT||'—'}</td>
+      <td class="num">${fmt(r.ILOSC)}</td>
+      <td class="num">${fmt(r.ILOSC_R)}</td>
+      <td class="num" style="color:#8B5CF6">${cena > 0 ? fmt(cena) : '—'}</td>
+      <td class="num">${cena > 0 ? fmt(wartSP, 2) : '—'}</td>
+      <td>${fmtDate(r.TERMIN)}</td>
+    </tr>`;
+  }
+  html += '</table></div>';
+
+  // === MRP ZAM ===
+  html += `<h2>🔄 M_KSM_MRP — wiersze ZAM (RODZAJ='W', ostatnie 20)</h2>
+  <div class="card"><table>
+    <tr><th>Dokument</th><th class="num">RAZEM</th><th class="num">Przychód</th><th class="num">Rozchód</th><th>Termin</th></tr>`;
+  for (const r of d.mrpZam) {
+    html += `<tr>
+      <td style="color:#6EE7B7">${r.DOKUMENT}</td>
+      <td class="num">${fmt(r.RAZEM)}</td>
+      <td class="num">${fmt(r.PRZYCHOD)}</td>
+      <td class="num">${fmt(r.ROZCHOD)}</td>
+      <td>${fmtDate(r.TERMIN)}</td>
+    </tr>`;
+  }
+  if (!d.mrpZam.length) html += '<tr><td colspan="5" style="color:#64748B">Brak</td></tr>';
+  html += '</table></div>';
+
+  // === MRP PRO ===
+  html += `<h2>🔄 M_KSM_MRP — wiersze PRO (RODZAJ='R', ostatnie 20)</h2>
+  <div class="card"><table>
+    <tr><th>Dokument</th><th class="num">RAZEM</th><th class="num">Przychód</th><th class="num">Rozchód</th><th>Termin</th></tr>`;
+  for (const r of d.mrpPro) {
+    html += `<tr>
+      <td style="color:#7DD3FC">${r.DOKUMENT}</td>
+      <td class="num">${fmt(r.RAZEM)}</td>
+      <td class="num">${fmt(r.PRZYCHOD)}</td>
+      <td class="num">${fmt(r.ROZCHOD)}</td>
+      <td>${fmtDate(r.TERMIN)}</td>
+    </tr>`;
+  }
+  if (!d.mrpPro.length) html += '<tr><td colspan="5" style="color:#64748B">Brak</td></tr>';
+  html += '</table></div>';
+
+  document.getElementById('output').innerHTML = html;
+}
+
+// Obsługa Enter
+document.getElementById('indeksInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') loadDebug();
+});
+
+// Auto-load z URL
+const params = new URLSearchParams(location.search);
+if (params.get('indeks')) {
+  document.getElementById('indeksInput').value = params.get('indeks');
+  loadDebug();
+}
+</script>
+</body>
+</html>

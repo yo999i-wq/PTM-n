@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Raport Materiałowy — Plan Tygodnia</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0F172A;--bg2:#1E293B;--bg3:#263548;--border:#334155;
+  --text:#F1F5F9;--text2:#94A3B8;--text3:#64748B;
+  --blue:#2563EB;--blue2:#1D4ED8;--green:#10B981;--red:#EF4444;
+  --orange:#F59E0B;--teal:#06B6D4;--purple:#8B5CF6;
+  --font:'Segoe UI',Arial,sans-serif;--mono:'Consolas','Courier New',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.header{background:linear-gradient(135deg,#1E3A5F,#1D4ED8);padding:10px 16px;display:flex;align-items:center;gap:14px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.1)}
+.logo{font-size:17px;font-weight:800;color:white;letter-spacing:-.5px}.logo span{color:#60A5FA}.logo sub{font-size:9px;font-weight:400;color:rgba(255,255,255,.5);display:block;margin-top:-2px}
+.toolbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+.btn{padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transition:background .12s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--blue);color:white}.btn-primary:hover:not(:disabled){background:var(--blue2)}
+.btn-ghost{background:rgba(255,255,255,.08);color:white;border:1px solid rgba(255,255,255,.15)}.btn-ghost:hover:not(:disabled){background:rgba(255,255,255,.14)}
+.btn-sm{padding:3px 9px;font-size:11px}
+.sep{width:1px;height:24px;background:var(--border)}
+.filter-input{padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;outline:none}.filter-input:focus{border-color:var(--blue)}
+label{font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.tab-btn{padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-weight:600;transition:all .15s}
+.tab-btn.active{background:rgba(37,99,235,.25);color:#93C5FD;border-color:var(--blue)}
+.stat-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:5px 14px;display:flex;align-items:center;gap:18px;font-size:11px;color:var(--text3);flex-shrink:0;flex-wrap:wrap}
+.stat-val{font-weight:700;color:var(--text2)}.stat-val.red{color:var(--red)}.stat-val.green{color:var(--green)}
+.spin{width:12px;height:12px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:none}.spin.on{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.summary-row{display:flex;gap:10px;padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.card{background:var(--bg3);border-radius:8px;padding:8px 14px;min-width:110px;border:1px solid var(--border)}
+.card-val{font-size:20px;font-weight:800;color:var(--text)}.card-val.red{color:var(--red)}.card-val.green{color:var(--green)}.card-val.orange{color:var(--orange)}
+.card-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.fq{padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;font-weight:600}
+.fq.active{background:rgba(37,99,235,.2);color:#93C5FD;border-color:var(--blue)}
+.fq.red.active{background:rgba(239,68,68,.18);color:#FCA5A5;border-color:var(--red)}
+.fq.green.active{background:rgba(16,185,129,.15);color:#6EE7B7;border-color:var(--green)}
+.panel{display:none;flex-direction:column;flex:1;overflow:hidden}.panel.active{display:flex}
+.table-wrap{flex:1;overflow:auto}
+/* MATERIAŁY */
+table.rt{border-collapse:collapse;width:100%;font-size:12px;min-width:900px}
+table.rt thead th{background:var(--bg2);padding:6px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:2;cursor:pointer;user-select:none}
+table.rt thead th:hover{color:var(--text2)}.sort-icon{font-size:9px;margin-left:3px;color:var(--text3)}
+table.rt tbody tr{border-bottom:1px solid rgba(51,65,85,.4);transition:background .07s}
+table.rt tbody tr:hover{background:var(--bg3)}
+table.rt tbody td{padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+td.mono{font-family:var(--mono);font-size:11px}td.num{text-align:right;font-family:var(--mono);font-size:11px}td.teal{color:var(--teal);font-weight:600}
+tr.rok-shortage{background:rgba(239,68,68,.07)!important}tr.rok-shortage td.col-brak{color:var(--red)!important;font-weight:700}
+tr.rok-ok td.col-brak{color:var(--green)!important}
+.pbar{display:inline-block;width:60px;height:7px;background:var(--bg3);border-radius:4px;vertical-align:middle;margin-left:4px;overflow:hidden}.pbar-fill{height:100%;border-radius:4px}
+/* ZLECENIA / PRZEWODNIKI view */
+.zv-wrap{flex:1;overflow:auto}
+/* Zlecenie header row */
+.zg-head{display:grid;grid-template-columns:28px 180px 1fr 90px 90px 120px 130px;align-items:center;border-bottom:1px solid rgba(51,65,85,.5);cursor:pointer;padding:0;transition:background .07s;min-width:800px}
+.zg-head:hover{background:var(--bg3)}
+.zg-head.brak-bg{background:rgba(239,68,68,.05)}.zg-head.brak-bg:hover{background:rgba(239,68,68,.09)}
+.zg-head.ok-bg:hover{background:rgba(16,185,129,.04)}
+.zg-cell{padding:7px 8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zg-cell.num{text-align:right;font-family:var(--mono);font-size:11px}
+/* Przewodnik child rows */
+.zp-wrap{display:none}.zp-wrap.open{display:block;background:rgba(10,18,30,.5);border-bottom:1px solid rgba(51,65,85,.3)}
+.zp-row{display:grid;grid-template-columns:28px 180px 1fr 90px 90px 120px 130px;align-items:center;border-bottom:1px solid rgba(51,65,85,.25);min-width:800px;padding:0}
+.zp-row:hover{background:rgba(255,255,255,.03)}
+.zp-cell{padding:5px 8px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2)}
+.zp-cell.num{text-align:right;font-family:var(--mono);font-size:10px}
+/* Detail chips */
+.zp-detail{display:none;padding:6px 14px 10px 56px;flex-wrap:wrap;gap:5px;background:rgba(10,18,30,.6)}
+.zp-detail.open{display:flex}
+.chip{display:inline-flex;align-items:center;gap:4px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.22);border-radius:5px;padding:2px 7px;font-size:10px;color:#FCA5A5;font-family:var(--mono)}
+.chip .val{color:var(--red);font-weight:700}.chip .nm{color:var(--text3);font-family:var(--font);font-size:9px}
+/* status badges */
+.zbadge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:800}
+.zbadge.ok{background:rgba(16,185,129,.15);color:#6EE7B7;border:1px solid rgba(16,185,129,.25)}
+.zbadge.brak{background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.25)}
+/* mini progress */
+.mbar{display:inline-flex;align-items:center;gap:5px;font-size:10px}
+.mbar .tr{width:70px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;display:inline-block}
+.mbar .fi{height:100%;border-radius:3px}
+/* thead zlecenia */
+.zt-head{display:grid;grid-template-columns:28px 180px 1fr 90px 90px 120px 130px;background:var(--bg2);border-bottom:2px solid var(--border);position:sticky;top:0;z-index:3;min-width:800px}
+.zt-head-cell{padding:6px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);white-space:nowrap;cursor:pointer}
+.zt-head-cell:hover{color:var(--text2)}.zt-head-cell.num{text-align:right}
+/* empty */
+.no-data{padding:60px;text-align:center;color:var(--text3);font-size:14px;line-height:2.2}
+.no-data .icon{font-size:44px;opacity:.3;display:block;margin-bottom:8px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--border);padding:10px 16px;border-radius:8px;font-size:12px;color:var(--text);box-shadow:0 4px 20px rgba(0,0,0,.4);display:none;z-index:100}
+.toast.err{border-color:var(--red);background:rgba(239,68,68,.12)}.toast.on{display:block}
+.back-link{color:rgba(255,255,255,.5);text-decoration:none;font-size:12px}.back-link:hover{color:white}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Europa<span>Systems</span><sub>Raport Materiałowy</sub></div>
+  <div style="flex:1"></div>
+  <a href="/" class="back-link">← MRP Browser</a>
+</div>
+
+<div class="toolbar">
+  <label>Plik harm-full:</label>
+  <button class="btn btn-primary" onclick="triggerUpload()">📂 Wgraj JSON</button>
+  <input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleFile(this)">
+  <span id="fileLabel" style="font-size:11px;color:var(--text3)">Brak pliku</span>
+  <div class="sep"></div>
+  <button class="tab-btn active" id="tabMat"  onclick="switchTab('mat')">📦 Materiały</button>
+  <button class="tab-btn"        id="tabZlec" onclick="switchTab('zlec')">📋 Zlecenia</button>
+  <div class="sep"></div>
+  <span id="matFilters" style="display:flex;align-items:center;gap:8px">
+    <label>Pokaż:</label>
+    <button class="fq active" id="fqAll"  onclick="setFilter('all')">Wszystkie</button>
+    <button class="fq red"    id="fqBrak" onclick="setFilter('shortage')">🔴 Braki</button>
+    <button class="fq green"  id="fqOk"   onclick="setFilter('ok')">🟢 OK</button>
+    <div class="sep"></div>
+    <input class="filter-input" id="fSearch" placeholder="Szukaj indeks/nazwa…" oninput="applyFilter()" style="width:200px">
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fSearch').value='';applyFilter()">✕</button>
+  </span>
+  <span id="zlecFilters" style="display:none;align-items:center;gap:8px">
+    <label>Pokaż:</label>
+    <button class="fq active" id="zqAll"  onclick="setZFilter('all')">Wszystkie</button>
+    <button class="fq red"    id="zqBrak" onclick="setZFilter('brakuje')">🔴 Brakuje</button>
+    <button class="fq green"  id="zqOk"   onclick="setZFilter('ok')">🟢 OK</button>
+    <div class="sep"></div>
+    <input class="filter-input" id="zSearch" placeholder="Szukaj nr/nazwy…" oninput="applyZFilter()" style="width:200px">
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('zSearch').value='';applyZFilter()">✕</button>
+  </span>
+  <div class="sep"></div>
+  <button class="btn btn-ghost btn-sm" id="btnExcel" onclick="exportExcel()" disabled>📥 Excel</button>
+</div>
+
+<div class="summary-row" id="summaryRow" style="display:none">
+  <div class="card"><div class="card-val" id="cTyg">—</div><div class="card-lbl">Tydzień</div></div>
+  <div class="card"><div class="card-val" id="cZlec">—</div><div class="card-lbl">Zleceń w planie</div></div>
+  <div class="card"><div class="card-val" id="cMat">—</div><div class="card-lbl">Materiałów</div></div>
+  <div class="card"><div class="card-val red"   id="cBrak">—</div><div class="card-lbl">Mat. brakuje</div></div>
+  <div class="card"><div class="card-val green" id="cOk">—</div><div class="card-lbl">Mat. wystarczy</div></div>
+  <div class="card"><div class="card-val orange" id="cPct">—</div><div class="card-lbl">% pokrycia</div></div>
+  <div class="card" id="cPrzewOkCard"   style="display:none"><div class="card-val green" id="cPrzewOk">—</div><div class="card-lbl">Przew. OK</div></div>
+  <div class="card" id="cPrzewBrakCard" style="display:none"><div class="card-val red"   id="cPrzewBrak">—</div><div class="card-lbl">Przew. z brakiem</div></div>
+</div>
+
+<div class="stat-bar">
+  <span class="spin" id="spin"></span>
+  <div id="matStats" style="display:flex;align-items:center;gap:8px">
+    <span class="stat-val" id="sVisible">—</span><span>widocznych</span>
+    <span style="color:var(--text3)">|</span>
+    <span class="stat-val red"   id="sBraki">—</span><span>braków</span>
+    <span style="color:var(--text3)">|</span>
+    <span class="stat-val green" id="sOk">—</span><span>OK</span>
+  </div>
+  <div id="zlecStats" style="display:none;align-items:center;gap:8px">
+    <span class="spin" id="spinZ" style="display:none"></span>
+    <span class="stat-val" id="zsVisible">—</span><span>przewodników</span>
+    <span style="color:var(--text3)">|</span>
+    <span class="stat-val red"   id="zsBraki">—</span><span>z brakiem</span>
+    <span style="color:var(--text3)">|</span>
+    <span class="stat-val green" id="zsOk">—</span><span>pełne OK</span>
+    <span id="zsLoadInfo" style="color:var(--text3);font-size:10px;margin-left:4px"></span>
+  </div>
+  <div style="flex:1"></div>
+  <span id="sInfo" style="color:var(--text3)"></span>
+</div>
+
+<!-- MATERIAŁY PANEL -->
+<div class="panel active" id="panelMat">
+  <div class="table-wrap">
+    <div class="no-data" id="emptyState">
+      <span class="icon">📦</span>Wgraj plik <strong>harm-full_T##_YYYY.json</strong><br>
+      <span style="font-size:11px">Raport pokaże dostępność materiałów dla całego tygodniowego planu</span>
+    </div>
+    <table class="rt" id="repTable" style="display:none">
+      <thead><tr>
+        <th onclick="sortBy('indeks')">Indeks<span class="sort-icon" id="si-indeks">↕</span></th>
+        <th onclick="sortBy('nazwa')">Nazwa<span class="sort-icon" id="si-nazwa">↕</span></th>
+        <th style="text-align:center">JM</th>
+        <th onclick="sortBy('stanil')"   class="num">Stan obecny</th>
+        <th onclick="sortBy('przychod')" class="num">Przychód</th>
+        <th onclick="sortBy('rozchod')"  class="num">Rozchód</th>
+        <th onclick="sortBy('potrzeba')" class="num">Potrzeba</th>
+        <th onclick="sortBy('brakuje')"  class="num sorted">Pozostanie</th>
+        <th onclick="sortBy('dataZam')">Data ZAM</th>
+        <th onclick="sortBy('kupiec')">Kupiec</th>
+        <th>Pokrycie</th>
+      </tr></thead>
+      <tbody id="repBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ZLECENIA/PRZEWODNIKI PANEL -->
+<div class="panel" id="panelZlec">
+  <div class="zv-wrap" id="zvWrap">
+    <div class="no-data" id="emptyZlec">
+      <span class="icon">📋</span>Widok ładuje się po wgraniu pliku i pobraniu materiałów<br>
+      <span style="font-size:11px">Każdy NR_PRZEWODNIKA z harmonogramu: ✅ OK lub ❌ BRAKUJE + lista braków</span>
+    </div>
+    <div id="zvContent" style="display:none">
+      <!-- sticky header -->
+      <div class="zt-head">
+        <div class="zt-head-cell"></div>
+        <div class="zt-head-cell" onclick="sortZ('nr')">Nr przewodnika</div>
+        <div class="zt-head-cell" onclick="sortZ('nazwa')">Wyrób / Zlecenie</div>
+        <div class="zt-head-cell num" onclick="sortZ('total')">Mat.</div>
+        <div class="zt-head-cell num" onclick="sortZ('missing')">Brakuje</div>
+        <div class="zt-head-cell" onclick="sortZ('pct')">Pokrycie</div>
+        <div class="zt-head-cell">Status</div>
+      </div>
+      <div id="zvRows"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────
+let allRows     = [];
+let visibleRows = [];
+let quickFilter = 'all';
+let textFilter  = '';
+let sortCol     = 'brakuje';
+let sortAsc     = true;
+let planMeta    = null;
+let planZlecenia = [];
+let allRowsMap  = new Map(); // indeks -> row
+let activeTab   = 'mat';
+
+// Zlecenia view
+let zleceMap    = null;  // 'KAT-ROK-SYMB-LP-NR' -> [indeks,...]
+let harmPositions = {};  // NR_PRZEWODNIKA -> [{kodOper,harmStart,harmKoniec}]
+let harmMeta    = {};    // NR_PRZEWODNIKA -> {nazwazl,indWyr,nazwaWyr}
+// Grupy: [{zlecKey, zlecNr, zlecNazwa, przewodniki:[{nr,nrDisplay,indWyr,nazwaWyr,total,missing,pct,status,missingList}]}]
+let zleceGroups   = [];
+let zVisGroups    = [];
+let zQuick        = 'all';
+let zText         = '';
+let expandedZlec  = new Set();  // rozwinięte klucze zleceń (nagłówki)
+let expandedPrzew = new Set();  // rozwinięte NR_PRZEWODNIKA (chipy braków)
+
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
+function fmt(v, dec=3) {
+  if (v == null || v === '') return '';
+  const n = Number(v); if (isNaN(n)) return '';
+  if (n === 0) return '0';
+  return n.toLocaleString('pl-PL', { maximumFractionDigits: dec });
+}
+function fmtDate(d) { return d ? String(d).slice(0,10) : ''; }
+function today() { return new Date().toISOString().slice(0,10); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toast(msg, err=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast on' + (err?' err':'');
+  clearTimeout(t._t); t._t = setTimeout(()=>{t.className='toast'},4000);
+}
+
+// Dekoduj NR_PRZEWODNIKA: KAT(3)+ROK(4)+SYMB(5)+LP(3)+NR(3) = 18 znaków
+// Klucz mapy: 'KAT-ROK-SYMB-LP_int-NR_int'
+function nrToMapKey(nr) {
+  if (!nr || nr.length < 18) return null;
+  const kat  = nr.slice(0, 3);
+  const rok  = nr.slice(3, 7);
+  const symb = nr.slice(7, 12);
+  const lp   = parseInt(nr.slice(12, 15)) || 0;
+  const nrp  = parseInt(nr.slice(15, 18)) || 0;
+  return `${kat}-${rok}-${symb}-${lp}-${nrp}`;
+}
+
+// Przyjazny wyświetlany numer: PRO-2024-00401-007-001
+function nrToDisplay(nr) {
+  if (!nr || nr.length < 18) return nr;
+  return `${nr.slice(0,3)}-${nr.slice(3,7)}-${nr.slice(7,12)}-${nr.slice(12,15)}-${nr.slice(15,18)}`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tabMat').classList.toggle('active', tab === 'mat');
+  document.getElementById('tabZlec').classList.toggle('active', tab === 'zlec');
+  document.getElementById('panelMat').classList.toggle('active', tab === 'mat');
+  document.getElementById('panelZlec').classList.toggle('active', tab === 'zlec');
+  document.getElementById('matFilters').style.display  = tab === 'mat'  ? 'flex' : 'none';
+  document.getElementById('zlecFilters').style.display = tab === 'zlec' ? 'flex' : 'none';
+  document.getElementById('matStats').style.display    = tab === 'mat'  ? 'flex' : 'none';
+  document.getElementById('zlecStats').style.display   = tab === 'zlec' ? 'flex' : 'none';
+  if (tab === 'zlec' && allRows.length > 0 && zleceMap === null) fetchZleceMap();
+}
+
+// ─────────────────────────────────────────────────────────────
+// UPLOAD
+// ─────────────────────────────────────────────────────────────
+function triggerUpload() { document.getElementById('fileInput').click(); }
+
+function handleFile(input) {
+  const file = input.files[0]; if (!file) return;
+  document.getElementById('fileLabel').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try { processHarmFull(JSON.parse(e.target.result), file.name); }
+    catch(ex) { toast('Błąd JSON: ' + ex.message, true); }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.json')) {
+    document.getElementById('fileLabel').textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try { processHarmFull(JSON.parse(ev.target.result), file.name); }
+      catch(ex) { toast('Błąd JSON: '+ex.message, true); }
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// PROCESS harm-full
+// ─────────────────────────────────────────────────────────────
+function processHarmFull(data, filename) {
+  harmPositions = data.positions    || {};
+  harmMeta      = data.positionMeta || {};
+  const week = data.week, year = data.year;
+
+  // Wyciągnij unikalne zlecenia
+  const zleceMap2 = new Map();
+  for (const nr of Object.keys(harmPositions)) {
+    if (nr.length < 12) continue;
+    const kat = nr.slice(0,3), rok = nr.slice(3,7), symb = nr.slice(7,12);
+    const key = `${kat}-${rok}-${symb}`;
+    if (!zleceMap2.has(key)) {
+      const meta = harmMeta[nr] || {};
+      zleceMap2.set(key, { kat, rok, symb, nazwazl: meta.nazwazl || '' });
+    }
+  }
+  planZlecenia = [...zleceMap2.values()];
+
+  zleceMap = null; zleceGroups = []; expandedZlec.clear(); expandedPrzew.clear();
+  planMeta = { week, year, filename, zleceniaCount: planZlecenia.length, przewodnikCount: Object.keys(harmPositions).length };
+
+  document.getElementById('cTyg').textContent  = `T${week}/${year}`;
+  document.getElementById('cZlec').textContent = planZlecenia.length;
+  document.getElementById('summaryRow').style.display = 'flex';
+  document.getElementById('sInfo').textContent = `${filename} — ${planZlecenia.length} zleceń, ${Object.keys(harmPositions).length} przewodników`;
+
+  allRows = []; allRowsMap.clear(); visibleRows = [];
+  document.getElementById('repTable').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'block';
+  document.getElementById('emptyState').innerHTML = '<span class="icon">⏳</span>Pobieranie danych materiałowych…';
+  document.getElementById('zvContent').style.display = 'none';
+  document.getElementById('emptyZlec').style.display = 'block';
+  document.getElementById('cPrzewOkCard').style.display   = 'none';
+  document.getElementById('cPrzewBrakCard').style.display = 'none';
+
+  fetchReport(planZlecenia);
+}
+
+// ─────────────────────────────────────────────────────────────
+// FETCH MATERIAŁY
+// ─────────────────────────────────────────────────────────────
+async function fetchReport(zlecenia) {
+  document.getElementById('spin').classList.add('on');
+  document.getElementById('btnExcel').disabled = true;
+  try {
+    const resp = await fetch('/api/plan-material-report', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ zlecenia, week: planMeta?.week, year: planMeta?.year }),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Błąd serwera');
+    allRows = data.rows || [];
+    allRowsMap.clear();
+    for (const r of allRows) allRowsMap.set(r.indeks, r);
+    document.getElementById('cMat').textContent  = allRows.length;
+    document.getElementById('cBrak').textContent = data.braki;
+    document.getElementById('cOk').textContent   = data.count - data.braki;
+    const pct = data.count > 0 ? Math.round((data.count - data.braki) / data.count * 100) : 0;
+    document.getElementById('cPct').textContent  = pct + '%';
+    document.getElementById('btnExcel').disabled = false;
+    applyFilter();
+    toast(`Załadowano ${allRows.length} materiałów — ${data.braki} braków`);
+    if (activeTab === 'zlec') fetchZleceMap();
+  } catch(err) {
+    toast('Błąd API: ' + err.message, true);
+    document.getElementById('emptyState').innerHTML = `<span class="icon">❌</span>Błąd: ${err.message}`;
+  } finally {
+    document.getElementById('spin').classList.remove('on');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// FETCH MAPA ZLECEŃ → przewodniki
+// ─────────────────────────────────────────────────────────────
+async function fetchZleceMap() {
+  if (!planZlecenia.length || !allRows.length) return;
+  document.getElementById('spinZ').style.display = 'inline-block';
+  document.getElementById('zsLoadInfo').textContent = 'Pobieranie mapy przewodników…';
+  document.getElementById('zvContent').style.display = 'none';
+  document.getElementById('emptyZlec').style.display = 'block';
+  document.getElementById('emptyZlec').innerHTML = '<span class="icon">⏳</span>Pobieranie powiązań NR_PRZEWODNIKA → materiały…';
+
+  try {
+    const resp = await fetch('/api/plan-zlecenia-map', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ zlecenia: planZlecenia }),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Błąd serwera');
+    zleceMap = data.map; // 'KAT-ROK-SYMB-LP-NR' -> [indeks,...]
+    buildZleceGroups();
+    applyZFilter();
+    const total  = zleceGroups.reduce((s,g) => s + g.przewodniki.length, 0);
+    const braki  = zleceGroups.reduce((s,g) => s + g.przewodniki.filter(p=>p.status==='brakuje').length, 0);
+    toast(`Widok zleceń: ${total} przewodników, ${braki} z brakami`);
+  } catch(err) {
+    toast('Błąd mapy: ' + err.message, true);
+    document.getElementById('emptyZlec').innerHTML = `<span class="icon">❌</span>Błąd: ${err.message}`;
+  } finally {
+    document.getElementById('spinZ').style.display = 'none';
+    document.getElementById('zsLoadInfo').textContent = '';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// BUILD per-przewodnik groups
+// ─────────────────────────────────────────────────────────────
+function buildZleceGroups() {
+  // Grupuj harm-full positions po zleceniu
+  const groupMap = new Map(); // 'KAT-ROK-SYMB' -> [{nr, key, meta}]
+  for (const [nr, ops] of Object.entries(harmPositions)) {
+    if (nr.length < 12) continue;
+    const kat = nr.slice(0,3), rok = nr.slice(3,7), symb = nr.slice(7,12);
+    const zlecKey = `${kat}-${rok}-${symb}`;
+    const mapKey  = nrToMapKey(nr);
+    if (!groupMap.has(zlecKey)) groupMap.set(zlecKey, []);
+    groupMap.get(zlecKey).push({ nr, mapKey, meta: harmMeta[nr] || {} });
+  }
+
+  zleceGroups = planZlecenia.map(z => {
+    const zlecKey = `${z.kat}-${z.rok}-${z.symb}`;
+    const list    = groupMap.get(zlecKey) || [];
+
+    const przewodniki = list
+      // Tylko przewodniki z rzeczywistymi wymaganiami materiałowymi (mają wpisy w M_PRZEWOD_SK)
+      // Wyklucza wpisy usługowe: czas projektowania, Fulfilment, DTH itp.
+      .filter(({ mapKey }) => (zleceMap[mapKey] || []).length > 0)
+      .map(({ nr, mapKey, meta }) => {
+      const mats    = zleceMap[mapKey] || [];
+      const missing = mats
+        .map(ind => allRowsMap.get(ind))
+        .filter(r => r && r.brakuje < 0)
+        .sort((a, b) => (a.brakuje||0) - (b.brakuje||0));
+      const total = mats.length;
+      const miss  = missing.length;
+      const pct   = total > 0 ? Math.round((total-miss)/total*100) : 100;
+      // Termin ze zlecenia (najwcześniejszy harmKoniec wśród operacji)
+      const ops = harmPositions[nr] || [];
+      const harmKoniec = ops.map(o => o.harmKoniec).filter(Boolean).sort()[0] || null;
+      return {
+        nr,
+        nrDisplay: nrToDisplay(nr),
+        zlecKey,
+        indWyr:   meta.indWyr   || '',
+        nazwaWyr: meta.nazwaWyr || '',
+        nazwazl:  meta.nazwazl  || z.nazwazl || '',
+        harmKoniec: harmKoniec ? harmKoniec.slice(0,10) : null,
+        total, missing: miss, pct,
+        status: miss === 0 ? 'ok' : 'brakuje',
+        missingList: missing.map(r => ({ indeks: r.indeks, nazwa: r.nazwa, brakuje: r.brakuje })),
+      };
+    });
+
+    // Sortuj: z brakami pierwsze, potem wg NR
+    przewodniki.sort((a,b) => (b.missing - a.missing) || a.nr.localeCompare(b.nr));
+
+    const gMiss = przewodniki.filter(p=>p.status==='brakuje').length;
+    const gTotal = przewodniki.length;
+    const gPct   = gTotal > 0 ? Math.round((gTotal-gMiss)/gTotal*100) : 100;
+
+    return {
+      zlecKey,
+      zlecNr:    `${z.kat}-${z.rok}-${z.symb}`,
+      zlecNazwa: z.nazwazl || '',
+      przewodniki,
+      total: gTotal, missing: gMiss, pct: gPct,
+      status: gMiss === 0 ? 'ok' : 'brakuje',
+    };
+  }).filter(g => g.total > 0); // pomiń zlecenia bez przewodników w planie
+
+  // Sortuj grupy: z brakami pierwsze
+  zleceGroups.sort((a,b) => (b.missing - a.missing) || a.zlecNr.localeCompare(b.zlecNr));
+
+  // Stats
+  const przOk   = zleceGroups.reduce((s,g) => s + g.przewodniki.filter(p=>p.status==='ok').length, 0);
+  const przBrak = zleceGroups.reduce((s,g) => s + g.przewodniki.filter(p=>p.status==='brakuje').length, 0);
+  document.getElementById('cPrzewOk').textContent   = przOk;
+  document.getElementById('cPrzewBrak').textContent = przBrak;
+  document.getElementById('cPrzewOkCard').style.display   = 'flex';
+  document.getElementById('cPrzewBrakCard').style.display = 'flex';
+}
+
+// ─────────────────────────────────────────────────────────────
+// FILTER — ZLECENIA VIEW
+// ─────────────────────────────────────────────────────────────
+function setZFilter(f) {
+  zQuick = f;
+  document.querySelectorAll('[id^="zq"]').forEach(b => b.classList.remove('active'));
+  document.getElementById({all:'zqAll',brakuje:'zqBrak',ok:'zqOk'}[f]).classList.add('active');
+  applyZFilter();
+}
+
+function applyZFilter() {
+  zText = document.getElementById('zSearch').value.toLowerCase().trim();
+
+  let groups = zleceGroups;
+
+  // Filter na poziomie grupy
+  if (zQuick !== 'all' || zText.length >= 2) {
+    groups = groups.map(g => {
+      let przew = g.przewodniki;
+      if (zQuick === 'brakuje') przew = przew.filter(p => p.status === 'brakuje');
+      else if (zQuick === 'ok') przew = przew.filter(p => p.status === 'ok');
+      if (zText.length >= 2) {
+        przew = przew.filter(p =>
+          p.nrDisplay.toLowerCase().includes(zText) ||
+          p.indWyr.toLowerCase().includes(zText) ||
+          p.nazwaWyr.toLowerCase().includes(zText) ||
+          p.nazwazl.toLowerCase().includes(zText) ||
+          g.zlecNr.toLowerCase().includes(zText) ||
+          g.zlecNazwa.toLowerCase().includes(zText)
+        );
+      }
+      return { ...g, przewodniki: przew };
+    }).filter(g => g.przewodniki.length > 0);
+  }
+
+  zVisGroups = groups;
+
+  const total = zVisGroups.reduce((s,g) => s + g.przewodniki.length, 0);
+  const braki = zVisGroups.reduce((s,g) => s + g.przewodniki.filter(p=>p.status==='brakuje').length, 0);
+  document.getElementById('zsVisible').textContent = total;
+  document.getElementById('zsBraki').textContent   = braki;
+  document.getElementById('zsOk').textContent      = total - braki;
+
+  renderZleceView();
+}
+
+function sortZ(col) {
+  // Proste sortowanie grup po kolumnie
+  const asc = true;
+  if (col === 'missing') zleceGroups.sort((a,b) => b.missing - a.missing);
+  else if (col === 'pct') zleceGroups.sort((a,b) => a.pct - b.pct);
+  else if (col === 'nr') zleceGroups.sort((a,b) => a.zlecNr.localeCompare(b.zlecNr));
+  else if (col === 'nazwa') zleceGroups.sort((a,b) => a.zlecNazwa.localeCompare(b.zlecNazwa));
+  else if (col === 'total') zleceGroups.sort((a,b) => b.total - a.total);
+  applyZFilter();
+}
+
+// ─────────────────────────────────────────────────────────────
+// RENDER ZLECENIA / PRZEWODNIKI view
+// ─────────────────────────────────────────────────────────────
+function renderZleceView() {
+  const empty = document.getElementById('emptyZlec');
+  const cont  = document.getElementById('zvContent');
+  const rows  = document.getElementById('zvRows');
+
+  if (!zVisGroups.length) {
+    empty.style.display = 'block'; cont.style.display = 'none';
+    empty.innerHTML = zleceGroups.length > 0
+      ? '<span class="icon">🔍</span>Brak wyników dla aktualnego filtra'
+      : '<span class="icon">📋</span>Brak danych zleceń';
+    return;
+  }
+  empty.style.display = 'none'; cont.style.display = 'block';
+
+  rows.innerHTML = zVisGroups.map(g => {
+    const gExp  = expandedZlec.has(g.zlecKey);
+    const gArr  = gExp ? '▼' : '▶';
+    const gPc   = g.pct >= 100 ? 'var(--green)' : g.pct >= 50 ? 'var(--orange)' : 'var(--red)';
+    const gBadge = g.status === 'ok'
+      ? `<span class="zbadge ok">✅ OK</span>`
+      : `<span class="zbadge brak">❌ BRAKUJE ${g.missing}</span>`;
+    const gCls  = g.status === 'brakuje' ? 'zg-head brak-bg' : 'zg-head ok-bg';
+
+    const headHtml = `
+      <div class="${gCls}" onclick="toggleZlec('${g.zlecKey}')">
+        <div class="zg-cell" style="text-align:center;color:var(--text3);font-size:11px">${gArr}</div>
+        <div class="zg-cell" style="font-family:var(--mono);font-size:11px;color:var(--teal);font-weight:700">${g.zlecNr}</div>
+        <div class="zg-cell" style="color:var(--text2)" title="${esc(g.zlecNazwa)}">${esc(g.zlecNazwa)||'—'}</div>
+        <div class="zg-cell num" style="color:var(--text3)">${g.total}</div>
+        <div class="zg-cell num" style="${g.missing>0?'color:var(--red);font-weight:700':'color:var(--green)'}">${g.missing}</div>
+        <div class="zg-cell">
+          <div class="mbar">
+            <span class="tr"><span class="fi" style="width:${g.pct}%;background:${gPc}"></span></span>
+            <span style="color:${gPc};font-weight:700">${g.pct}%</span>
+          </div>
+        </div>
+        <div class="zg-cell">${gBadge}</div>
+      </div>`;
+
+    if (!gExp) return headHtml;
+
+    const przHtml = g.przewodniki.map(p => {
+      const pExp  = expandedPrzew.has(p.nr);
+      const pArr  = p.status === 'brakuje' ? (pExp ? '▼' : '▶') : ' ';
+      const pPc   = p.pct >= 100 ? 'var(--green)' : p.pct >= 50 ? 'var(--orange)' : 'var(--red)';
+      const pBadge = p.status === 'ok'
+        ? `<span class="zbadge ok" style="font-size:9px">✅ OK</span>`
+        : `<span class="zbadge brak" style="font-size:9px">❌ ${p.missing}</span>`;
+      const term  = p.harmKoniec || '';
+      const termStyle = term && term < today() ? 'color:#FBBF24;font-weight:700' : 'color:var(--text3)';
+
+      // indWyr + nazwaWyr jako opis
+      const desc = [p.indWyr, p.nazwaWyr].filter(Boolean).join(' · ');
+
+      const rowHtml = `
+        <div class="zp-row" onclick="togglePrzew('${p.nr}')" style="${p.status==='brakuje'?'background:rgba(239,68,68,.03)':''}">
+          <div class="zp-cell" style="text-align:center;color:var(--text3)">${pArr}</div>
+          <div class="zp-cell" style="font-family:var(--mono);font-size:10px;color:var(--teal)">${p.nrDisplay}</div>
+          <div class="zp-cell" style="font-size:10px" title="${esc(desc)}">
+            ${p.indWyr?`<span style="color:var(--teal);font-family:var(--mono);font-size:9px">${esc(p.indWyr)}</span> `:''}
+            <span style="color:var(--text2)">${esc(p.nazwaWyr)||esc(p.nazwazl)||'—'}</span>
+          </div>
+          <div class="zp-cell num" style="color:var(--text3)">${p.total||'—'}</div>
+          <div class="zp-cell num" style="${p.missing>0?'color:var(--red);font-weight:700':'color:var(--green)'}">${p.missing||0}</div>
+          <div class="zp-cell">
+            <div class="mbar">
+              <span class="tr"><span class="fi" style="width:${p.pct}%;background:${pPc}"></span></span>
+              <span style="color:${pPc};font-size:10px">${p.pct}%</span>
+              ${term?`<span style="${termStyle};font-size:9px;margin-left:3px">${term}</span>`:''}
+            </div>
+          </div>
+          <div class="zp-cell">${pBadge}</div>
+        </div>
+        ${p.status === 'brakuje' && pExp ? renderChips(p) : ''}
+      `;
+      return rowHtml;
+    }).join('');
+
+    return `${headHtml}<div class="zp-wrap open">${przHtml}</div>`;
+  }).join('');
+}
+
+function renderChips(p) {
+  const chips = p.missingList.slice(0, 60).map(m =>
+    `<div class="chip"><span>${esc(m.indeks)}</span><span class="val">${fmt(m.brakuje,1)}</span><span class="nm">${esc((m.nazwa||'').slice(0,40))}</span></div>`
+  ).join('');
+  const more = p.missingList.length > 60 ? `<div class="chip" style="background:rgba(100,116,139,.1);color:var(--text3);border-color:var(--border)">+${p.missingList.length-60} więcej</div>` : '';
+  return `<div class="zp-detail open">${chips}${more}</div>`;
+}
+
+function toggleZlec(key) {
+  if (expandedZlec.has(key)) expandedZlec.delete(key);
+  else expandedZlec.add(key);
+  renderZleceView();
+}
+
+function togglePrzew(nr) {
+  if (expandedPrzew.has(nr)) expandedPrzew.delete(nr);
+  else expandedPrzew.add(nr);
+  renderZleceView();
+}
+
+// ─────────────────────────────────────────────────────────────
+// FILTER — MATERIAŁY view
+// ─────────────────────────────────────────────────────────────
+function setFilter(f) {
+  quickFilter = f;
+  document.querySelectorAll('.fq').forEach(b => b.classList.remove('active'));
+  document.getElementById({all:'fqAll',shortage:'fqBrak',ok:'fqOk'}[f]).classList.add('active');
+  applyFilter();
+}
+
+function applyFilter() {
+  textFilter = document.getElementById('fSearch').value.toLowerCase().trim();
+  let data = allRows;
+  if (quickFilter === 'shortage') data = data.filter(r => r.brakuje < 0);
+  else if (quickFilter === 'ok')  data = data.filter(r => r.brakuje >= 0);
+  if (textFilter.length >= 2) data = data.filter(r =>
+    (r.indeks&&r.indeks.toLowerCase().includes(textFilter)) ||
+    (r.nazwa &&r.nazwa.toLowerCase().includes(textFilter))
+  );
+  data = [...data].sort((a,b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (va==null) va = sortAsc ? Infinity : -Infinity;
+    if (vb==null) vb = sortAsc ? Infinity : -Infinity;
+    if (typeof va === 'number') return sortAsc ? va-vb : vb-va;
+    return sortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+  visibleRows = data;
+  renderTable();
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = col === 'brakuje'; }
+  document.querySelectorAll('.sort-icon').forEach(e => e.textContent = '↕');
+  const si = document.getElementById('si-'+col);
+  if (si) { si.textContent = sortAsc ? '↑' : '↓'; }
+  applyFilter();
+}
+
+// ─────────────────────────────────────────────────────────────
+// RENDER MATERIAŁY
+// ─────────────────────────────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('repBody');
+  const table = document.getElementById('repTable');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('sVisible').textContent = visibleRows.length;
+  document.getElementById('sBraki').textContent   = visibleRows.filter(r=>r.brakuje<0).length;
+  document.getElementById('sOk').textContent      = visibleRows.filter(r=>r.brakuje>=0).length;
+  if (!visibleRows.length) {
+    table.style.display = 'none'; empty.style.display = 'block';
+    empty.innerHTML = allRows.length ? '<span class="icon">🔍</span>Brak wyników' : '<span class="icon">📦</span>Wgraj plik harm-full JSON';
+    return;
+  }
+  table.style.display = ''; empty.style.display = 'none';
+  const td = today();
+  tbody.innerHTML = visibleRows.map(r => {
+    const b = r.brakuje;
+    const cls = b < 0 ? 'rok-shortage' : 'rok-ok';
+    const avail = (r.stanil||0)+(r.przychod||0), need = r.potrzeba||0;
+    let pct = 100; if (need>0) pct = Math.min(100,Math.round(avail/need*100));
+    const pc = pct>=100?'var(--green)':pct>=50?'var(--orange)':'var(--red)';
+    const dz = fmtDate(r.dataZam);
+    return `<tr class="${cls}">
+      <td class="mono teal">${r.indeks}</td>
+      <td title="${esc(r.nazwa||'')}" style="max-width:240px">${esc(r.nazwa||'')}</td>
+      <td style="text-align:center;font-size:10px;color:var(--text3);font-family:var(--mono)">${r.jm||''}</td>
+      <td class="num">${fmt(r.stanil)}</td>
+      <td class="num" style="${r.przychod>0?'color:var(--green)':''}">${fmt(r.przychod)}</td>
+      <td class="num">${fmt(r.rozchod)}</td>
+      <td class="num" style="color:var(--orange)">${r.potrzeba!=null?fmt(r.potrzeba):''}</td>
+      <td class="num col-brak" style="${b<0?'color:var(--red);font-weight:700':b>0?'color:var(--green)':''}">${fmt(b)}</td>
+      <td style="font-size:10px;${dz?dz<td?'color:#FBBF24;font-weight:700':'color:var(--green)':'color:var(--text3)'}">${dz?(dz<td?'⚠ ':'')+dz:'—'}</td>
+      <td style="font-size:10px;color:var(--text3)">${r.kupiec||''}</td>
+      <td><span style="font-size:10px;font-family:var(--mono);color:${pc}">${pct}%</span>
+          <span class="pbar"><span class="pbar-fill" style="width:${pct}%;background:${pc}"></span></span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────────────────
+// EXPORT
+// ─────────────────────────────────────────────────────────────
+function exportExcel() {
+  if (activeTab === 'mat') exportMatExcel(); else exportZleceExcel();
+}
+
+function exportMatExcel() {
+  if (!visibleRows.length || typeof XLSX === 'undefined') { toast('Brak danych',true); return; }
+  const hdr = ['Indeks','Nazwa','JM','Stan','Przychód','Rozchód','Potrzeba','Pozostanie','Data ZAM','Kupiec','Pokrycie %','Status'];
+  const pct = r => { const p=r.potrzeba||0; return p>0?Math.min(100,Math.round(((r.stanil||0)+(r.przychod||0))/p*100)):100; };
+  const rows = visibleRows.map(r => [r.indeks,r.nazwa,r.jm,r.stanil??'',r.przychod??'',r.rozchod??'',r.potrzeba??'',r.brakuje??'',r.dataZam?r.dataZam.slice(0,10):'',r.kupiec,pct(r),r.brakuje<0?'BRAKUJE':'OK']);
+  const ws = XLSX.utils.aoa_to_sheet([hdr,...rows]);
+  ws['!cols']=[{wch:22},{wch:40},{wch:6},{wch:12},{wch:12},{wch:12},{wch:14},{wch:12},{wch:12},{wch:10},{wch:10},{wch:8}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `Mat_T${planMeta?.week||'?'}`.slice(0,31));
+  dlXlsx(wb, `RaportMaterialowy_T${planMeta?.week||'?'}_${planMeta?.year||''}_${today()}.xlsx`);
+  toast(`Eksportowano ${visibleRows.length} materiałów`);
+}
+
+function exportZleceExcel() {
+  if (!zVisGroups.length || typeof XLSX === 'undefined') { toast('Brak danych',true); return; }
+  const hdr = ['Nr zlecenia','Nazwa zlecenia','NR_PRZEWODNIKA','Wyrób (indeks)','Nazwa wyrobu','Termin','Mat.','Brakuje mat.','Pokrycie %','Status','Brakujące indeksy'];
+  const rows = [];
+  for (const g of zVisGroups) {
+    for (const p of g.przewodniki) {
+      rows.push([
+        g.zlecNr, g.zlecNazwa, p.nrDisplay, p.indWyr, p.nazwaWyr,
+        p.harmKoniec||'', p.total, p.missing, p.pct,
+        p.status==='ok'?'OK':'BRAKUJE',
+        p.missingList.map(m=>m.indeks).join(', ')
+      ]);
+    }
+  }
+  const ws = XLSX.utils.aoa_to_sheet([hdr,...rows]);
+  ws['!cols']=[{wch:20},{wch:40},{wch:22},{wch:20},{wch:30},{wch:12},{wch:8},{wch:10},{wch:10},{wch:8},{wch:80}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `Przew_T${planMeta?.week||'?'}`.slice(0,31));
+  dlXlsx(wb, `RaportPrzewodnikow_T${planMeta?.week||'?'}_${planMeta?.year||''}_${today()}.xlsx`);
+  toast(`Eksportowano ${rows.length} przewodników`);
+}
+
+function dlXlsx(wb, fn) {
+  const out = XLSX.write(wb, {bookType:'xlsx',type:'array'});
+  const url = URL.createObjectURL(new Blob([out],{type:'application/octet-stream'}));
+  const a = Object.assign(document.createElement('a'),{href:url,download:fn});
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},1000);
+}
+
+// Init
+sortCol = 'brakuje'; sortAsc = true;
+</script>
+</body>
+</html>

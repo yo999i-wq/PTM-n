@@ -1,0 +1,9 @@
+# Zależności
+node_modules/
+
+# Konfiguracja z danymi połączenia do bazy (skopiuj z config.example.js)
+config.js
+
+# Logi
+*.log
+npm-debug.log*

@@ -1,0 +1,12 @@
+{
+  "name": "mrp-browser",
+  "version": "1.0.0",
+  "description": "Przeglądarka MRP - materiały z powiązaniami do przewodników (Firebird/Rekord)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "node-firebird": "^1.1.10"
+  }
+}
