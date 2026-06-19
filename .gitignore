@@ -1,0 +1,12 @@
+# Zależności
+node_modules/
+
+# Konfiguracja z danymi połączenia do bazy (skopiuj z config.example.js)
+config.js
+
+# Lokalna kolejka produkcji (runtime, czytana z fallbackiem na pustą)
+prod-queue.json
+
+# Logi
+*.log
+npm-debug.log*
