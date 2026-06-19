@@ -83,30 +83,47 @@ function writeConfig(cfg) {
 // Cache krótkoterminowy — by nie skanować M_PRZEWOD_OP przy każdym żądaniu.
 let _cache = null, _cacheKey = '', _cacheExp = 0;
 
-async function queryCapacityLoad(weeks) {
+async function queryCapacityLoad(weeks, q) {
   const w = Math.max(1, Math.min(parseInt(weeks, 10) || 12, 53));
-  const key = 'cap|' + w;
+  q = String(q == null ? '' : q).trim();
+  // Filtr po numerze zlecenia: pełny „KAT-ROK-SYMBOL" → dokładnie; inaczej → SYMB_ZLEC zawiera.
+  let extra = '', extraPrm = [], filtr = null;
+  if (q) {
+    const m = /^([A-Za-z]{2,4})-(\d{4})-(.+)$/.exec(q);
+    if (m) { extra = ' AND TRIM(KAT_ZLEC)=? AND ROK_ZLEC=? AND UPPER(TRIM(SYMB_ZLEC)) LIKE ?'; extraPrm = [m[1].toUpperCase(), parseInt(m[2], 10), '%' + m[3].toUpperCase() + '%']; }
+    else { extra = ' AND UPPER(TRIM(SYMB_ZLEC)) LIKE ?'; extraPrm = ['%' + q.toUpperCase() + '%']; }
+    filtr = q;
+  }
+  const key = 'cap|' + w + '|' + q.toUpperCase();
   const now = Date.now();
   if (_cache && _cacheKey === key && _cacheExp > now) return _cache;
 
-  const start = new Date(); start.setHours(0, 0, 0, 0);
-  const end   = new Date(start.getTime() + w * 7 * 86400000);
-
   // Daty jako parametry (?) — niezależne od dialektu SQL i bezpieczne.
   // TJ_MASZ / TJ_PRAC = czas całej operacji (h); pozostała praca = ×(1−ZAAWANS/100).
-  const rows = await fbQuery(
-    `SELECT TRIM(GRUPA_ST) AS G, TRIM(KOD_OPER) AS O,
+  const SEL = `SELECT TRIM(GRUPA_ST) AS G, TRIM(KOD_OPER) AS O,
             EXTRACT(YEAR FROM HARM_START) AS Y, EXTRACT(WEEK FROM HARM_START) AS W,
             SUM((TPZ + TJ_MASZ) * (1 - ZAAWANS/100.0)) AS LM,
             SUM((TPZ + TJ_PRAC) * (1 - ZAAWANS/100.0)) AS LP
-     FROM M_PRZEWOD_OP
-     WHERE ZAAWANS < 100 AND HARM_START >= ? AND HARM_START <= ?
-     GROUP BY 1, 2, 3, 4`,
-    [start, end], 90000
-  );
+     FROM M_PRZEWOD_OP`;
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  let rows, weekCols;
+  if (filtr) {
+    // Filtr po zleceniu: operacje OD DZIŚ w przód (bez górnego okna) —
+    // kolumny = przyszłe tygodnie, w których zlecenie ma pracę. Wstecz nie pokazujemy.
+    rows = await fbQuery(`${SEL} WHERE ZAAWANS < 100 AND HARM_START >= ?${extra} GROUP BY 1, 2, 3, 4`, [start, ...extraPrm], 90000);
+    const wkSet = new Set();
+    for (const r of rows) {
+      const g = catFor((r.G || '').trim(), (r.O || '').trim());
+      if (GNIAZDA_SET.has(g) && ((Number(r.LM) || 0) + (Number(r.LP) || 0)) > 0) wkSet.add(`${r.Y}-W${String(r.W).padStart(2, '0')}`);
+    }
+    weekCols = [...wkSet].sort().slice(0, 60);   // bezpiecznik szerokości
+  } else {
+    const end = new Date(start.getTime() + w * 7 * 86400000);
+    rows = await fbQuery(`${SEL} WHERE ZAAWANS < 100 AND HARM_START >= ? AND HARM_START <= ? GROUP BY 1, 2, 3, 4`, [start, end], 90000);
+    weekCols = forwardWeeks(w);
+  }
 
-  const weekCols = forwardWeeks(w);
-  const weekSet  = new Set(weekCols);
+  const weekSet = new Set(weekCols);
   const load = {};                              // gniazdo -> { weekKey: {maszyna, praca} }
   for (const g of GNIAZDA) { load[g] = {}; for (const k of weekCols) load[g][k] = { maszyna: 0, praca: 0 }; }
 
@@ -125,7 +142,7 @@ async function queryCapacityLoad(weeks) {
     load[g][k].praca   = Math.round(load[g][k].praca   * 10) / 10;
   }
 
-  const result = { ok: true, weeks: weekCols, gniazda: GNIAZDA, load, generatedAt: new Date().toISOString() };
+  const result = { ok: true, weeks: weekCols, gniazda: GNIAZDA, load, filtr, generatedAt: new Date().toISOString() };
   _cache = result; _cacheKey = key; _cacheExp = now + 5 * 60 * 1000;   // 5 min
   return result;
 }
@@ -148,7 +165,7 @@ function _fmtTs(v) {
   return isNaN(d) ? null : d.toISOString().slice(0, 16).replace('T', ' ');
 }
 
-async function queryCapacityOps(gniazdo, week) {
+async function queryCapacityOps(gniazdo, week, q) {
   if (!GNIAZDA_SET.has(gniazdo)) throw new Error('Nieznane gniazdo: ' + gniazdo);
   const m = /^(\d{4})-W(\d{1,2})$/.exec(week || '');
   if (!m) throw new Error('Nieprawidłowy tydzień (oczekiwano RRRR-Wnn)');
@@ -159,13 +176,20 @@ async function queryCapacityOps(gniazdo, week) {
   let basis = 'maszyna';
   try { const g = readConfig().gniazda.find(x => x.id === gniazdo); if (g && g.podstawaMocy) basis = g.podstawaMocy; } catch (_) {}
 
+  q = String(q == null ? '' : q).trim();
+  let extra = '', extraPrm = [];
+  if (q) {
+    const mm = /^([A-Za-z]{2,4})-(\d{4})-(.+)$/.exec(q);
+    if (mm) { extra = ' AND TRIM(KAT_ZLEC)=? AND ROK_ZLEC=? AND UPPER(TRIM(SYMB_ZLEC)) LIKE ?'; extraPrm = [mm[1].toUpperCase(), parseInt(mm[2], 10), '%' + mm[3].toUpperCase() + '%']; }
+    else { extra = ' AND UPPER(TRIM(SYMB_ZLEC)) LIKE ?'; extraPrm = ['%' + q.toUpperCase() + '%']; }
+  }
   const rows = await fbQuery(
     `SELECT TRIM(KAT_ZLEC) AS KAT, ROK_ZLEC AS ROK, TRIM(SYMB_ZLEC) AS SYMB, TRIM(LP_ZLEC) AS LPZ,
             TRIM(NR_PRZEW) AS NRP, LP AS LP, TRIM(KOD_OPER) AS KOD, TRIM(GRUPA_ST) AS G,
             ZAAWANS, TPZ, TJ_MASZ, TJ_PRAC, HARM_START, HARM_KONIEC, TRIM(OPIS) AS OPIS
      FROM M_PRZEWOD_OP
-     WHERE ZAAWANS < 100 AND HARM_START >= ? AND HARM_START < ?`,
-    [start, end], 60000
+     WHERE ZAAWANS < 100 AND HARM_START >= ? AND HARM_START < ?${extra}`,
+    [start, end, ...extraPrm], 60000
   );
 
   const out = [];
@@ -190,7 +214,45 @@ async function queryCapacityOps(gniazdo, week) {
   return { ok: true, gniazdo, week, basis, count: out.length, shown: Math.min(out.length, 300), sumH: Math.round(sumH * 10) / 10, ops: out.slice(0, 300) };
 }
 
+// ── Obłożenie: godziny per zlecenie × gniazdo (operacje otwarte) ──
+// Dla podanych zleceń (KAT-ROK-SYMBOL) zwraca pozostałe godziny pracy
+// rozbite na gniazda. Zwraca maszyna+praca; podstawę wybiera frontend.
+async function queryOrdersLoad(orders) {
+  const t = s => String(s == null ? '' : s).trim();
+  const list = (orders || []).filter(o => o && t(o.kat) && t(o.symb));
+  const load = {};                                  // nr -> { gniazdo: {maszyna, praca} }
+  const BATCH = 15;
+  for (let i = 0; i < list.length; i += BATCH) {
+    const chunk = list.slice(i, i + BATCH);
+    const cond = chunk.map(() => '(TRIM(KAT_ZLEC)=? AND ROK_ZLEC=? AND TRIM(SYMB_ZLEC)=?)').join(' OR ');
+    const prm  = chunk.flatMap(o => [t(o.kat), parseInt(o.rok, 10) || 0, t(o.symb)]);
+    const rows = await fbQuery(
+      `SELECT TRIM(KAT_ZLEC) AS K, ROK_ZLEC AS R, TRIM(SYMB_ZLEC) AS S, TRIM(GRUPA_ST) AS G, TRIM(KOD_OPER) AS O,
+              SUM((TPZ + TJ_MASZ) * (1 - ZAAWANS/100.0)) AS LM,
+              SUM((TPZ + TJ_PRAC) * (1 - ZAAWANS/100.0)) AS LP
+       FROM M_PRZEWOD_OP
+       WHERE ZAAWANS < 100 AND (${cond})
+       GROUP BY 1, 2, 3, 4, 5`,
+      prm, 120000
+    );
+    for (const r of rows) {
+      const g = catFor(t(r.G), t(r.O));
+      if (!GNIAZDA_SET.has(g)) continue;            // tylko zdefiniowane gniazda
+      const nr = `${t(r.K)}-${r.R}-${t(r.S)}`;
+      if (!load[nr]) load[nr] = {};
+      if (!load[nr][g]) load[nr][g] = { maszyna: 0, praca: 0 };
+      load[nr][g].maszyna += Number(r.LM) || 0;
+      load[nr][g].praca   += Number(r.LP) || 0;
+    }
+  }
+  for (const nr in load) for (const g in load[nr]) {
+    load[nr][g].maszyna = Math.round(load[nr][g].maszyna * 10) / 10;
+    load[nr][g].praca   = Math.round(load[nr][g].praca   * 10) / 10;
+  }
+  return { ok: true, gniazda: GNIAZDA, load };
+}
+
 module.exports = {
   GNIAZDA, GROUP_CATEGORIES, OPER_CATEGORIES, catFor,
-  readConfig, writeConfig, queryCapacityLoad, queryCapacityOps, clearCapacityCache,
+  readConfig, writeConfig, queryCapacityLoad, queryCapacityOps, queryOrdersLoad, clearCapacityCache,
 };

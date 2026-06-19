@@ -9,7 +9,7 @@ const os   = require('os');
 
 const config = require('./config');
 const { queryMaterials, queryMaterialsGlobal, queryMaterialDetail, queryOrdersAC, queryZamPositions, queryProPositions, queryPlanMaterials, queryPlanZlecenieMap, fbQuery, testConnection, detectIndeksColumn, getTableColumns, clearCache, cacheStats } = require('./src/fb-mrp');
-const { queryCapacityLoad, queryCapacityOps, readConfig: readCapConfig, writeConfig: writeCapConfig, clearCapacityCache } = require('./src/capacity');
+const { queryCapacityLoad, queryCapacityOps, queryOrdersLoad, readConfig: readCapConfig, writeConfig: writeCapConfig, clearCapacityCache } = require('./src/capacity');
 const { searchProdOrders, readQueue: readProdQueue, writeQueue: writeProdQueue, queryOrdersBraki } = require('./src/prodqueue');
 
 const PORT       = process.env.PORT || config.port || 5350;
@@ -435,7 +435,7 @@ const server = http.createServer(async (req, res) => {
   // GET /api/capacity?weeks=12
   if (urlPath === '/api/capacity' && method === 'GET') {
     try {
-      jsonResp(res, await queryCapacityLoad(qs.weeks || 12));
+      jsonResp(res, await queryCapacityLoad(qs.weeks || 12, qs.q || ''));
     } catch (err) {
       console.error('[API] /api/capacity error:', err.message);
       errResp(res, err.message);
@@ -447,7 +447,7 @@ const server = http.createServer(async (req, res) => {
   // GET /api/capacity/ops?gniazdo=SPAW&week=2026-W27
   if (urlPath === '/api/capacity/ops' && method === 'GET') {
     try {
-      jsonResp(res, await queryCapacityOps((qs.gniazdo || '').trim(), (qs.week || '').trim()));
+      jsonResp(res, await queryCapacityOps((qs.gniazdo || '').trim(), (qs.week || '').trim(), (qs.q || '').trim()));
     } catch (err) {
       console.error('[API] /api/capacity/ops error:', err.message);
       errResp(res, err.message, 400);
@@ -509,6 +509,27 @@ const server = http.createServer(async (req, res) => {
       } catch (err) {
         clearTimeout(abort);
         console.error('[API] /api/order-braki error:', err.message);
+        errResp(res, err.message);
+      }
+    });
+    return;
+  }
+
+  // ── API: Obłożenie — godziny per zlecenie × gniazdo ─────────
+  // POST /api/order-load  body: { orders:[{kat,rok,symb}] }
+  if (urlPath === '/api/order-load' && method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    const abort = setTimeout(() => { try { errResp(res, 'Timeout obłożenia (>120s)', 504); } catch(_) {} }, 120000);
+    req.on('end', async () => {
+      try {
+        const { orders } = JSON.parse(body);
+        const data = await queryOrdersLoad(orders || []);
+        clearTimeout(abort);
+        jsonResp(res, data);
+      } catch (err) {
+        clearTimeout(abort);
+        console.error('[API] /api/order-load error:', err.message);
         errResp(res, err.message);
       }
     });

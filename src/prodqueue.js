@@ -30,6 +30,7 @@ function writeQueue(data) {
     items: data.items.map(it => ({
       kat: trim(it.kat), rok: parseInt(it.rok, 10) || 0, symb: trim(it.symb),
       nr: trim(it.nr) || `${trim(it.kat)}-${parseInt(it.rok, 10) || 0}-${trim(it.symb)}`,
+      etap: parseInt(it.etap, 10) || 1, etapNazwa: trim(it.etapNazwa),
       nazwa: trim(it.nazwa), klient: trim(it.klient), termin: it.termin || null,
       priorytet: Number(it.priorytet) || 0, notatka: trim(it.notatka),
     })).filter(it => it.kat && it.symb),

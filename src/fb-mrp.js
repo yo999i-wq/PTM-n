@@ -293,19 +293,21 @@ async function getLastPzCorpus() {
         for (const o of od) { const dw = o.DW ? new Date(o.DW).getTime() : 0; if (dw) orderDate.set(`${trim(o.K)}|${o.R}|${trim(o.S)}`, dw); }
       } catch(e) { console.warn('[MRP] order dates err:', e.message); }
 
-      const byIdx = new Map();  // indeks -> { cena, priceDate, leadSum, leadN }
+      // Zbierz REALNE przyjęcia (ILOSC>0 i CENA_EWID>0) per indeks — pomijamy korekty
+      // wartościowe (ILOSC=0, np. przeszacowania) i pozycje bez ceny, które fałszowały wycenę.
+      const byIdx = new Map();  // indeks -> { recs:[{d,c}], leadMax }
       for (const tab of ['M_OBROTYLP', 'M_OBROTYLP_ARCH']) {
         let rows = [];
         try {
-          rows = await fbQuery(`SELECT INDEKS, CENA_EWID AS C, DATA_DOKUM AS D, TRIM(NA_ZAMOW) AS NZ FROM ${tab} WHERE DOKUMENT STARTING WITH 'PZ' AND DATA_DOKUM IS NOT NULL`, [], 120000);
+          rows = await fbQuery(`SELECT INDEKS, CENA_EWID AS C, ILOSC AS Q, DATA_DOKUM AS D, TRIM(NA_ZAMOW) AS NZ FROM ${tab} WHERE DOKUMENT STARTING WITH 'PZ' AND DATA_DOKUM IS NOT NULL`, [], 120000);
         } catch(e) { console.warn(`[MRP] PZ corpus ${tab} err:`, e.message); }
         for (const r of rows) {
           const idx = trim(r.INDEKS); if (!idx) continue;
           const d = r.D ? new Date(r.D).getTime() : 0;
           let e = byIdx.get(idx);
-          if (!e) { e = { cena: null, priceDate: 0, leadMax: null }; byIdx.set(idx, e); }
-          const c = Number(r.C);
-          if (c > 0 && d >= e.priceDate) { e.cena = c; e.priceDate = d; }   // cena z najnowszego PZ
+          if (!e) { e = { recs: [], leadMax: null }; byIdx.set(idx, e); }
+          const c = Number(r.C), q = Number(r.Q);
+          if (c > 0 && q > 0 && d) e.recs.push({ d, c });   // tylko realne przyjęcie (ilość + cena > 0)
           const nz = r.NZ ? String(r.NZ).trim() : '';
           if (nz.length >= 11 && d) {
             const dw = orderDate.get(`${nz.slice(0,3)}|${parseInt(nz.slice(3,7))}|${nz.slice(7,-3)}`);
@@ -313,9 +315,30 @@ async function getLastPzCorpus() {
           }
         }
       }
+      // Cena = najnowsze realne przyjęcie, ale odporne na błędy: odrzucamy odchyłki
+      // (>10× lub <0,1×) względem DOMINANTY (najczęstszej ceny) z okna maks. 6 miesięcy.
+      const SIX_MONTHS = 183 * 86400000;
+      const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+      // Dominanta = najczęstsza cena (klucz do 4 miejsc/grosza); null gdy każda cena unikalna.
+      const mode = a => {
+        const freq = new Map(); let best = null, bestN = 1;
+        for (const v of a) { const k = Math.round(v * 10000) / 10000; const n = (freq.get(k) || 0) + 1; freq.set(k, n); if (n > bestN) { bestN = n; best = k; } }
+        return best;
+      };
       const corpus = new Map();
       for (const [idx, v] of byIdx) {
-        const cena = v.cena > 0 ? v.cena : null;
+        let cena = null;
+        if (v.recs.length) {
+          v.recs.sort((a, b) => b.d - a.d);                                          // najnowsze pierwsze
+          const win = v.recs.filter(r => r.d >= v.recs[0].d - SIX_MONTHS).map(r => r.c);
+          let base = mode(win); if (base == null) base = median(win);                 // dominanta, a gdy brak powtórzeń — mediana
+          if (base != null && base > 0) {
+            const ok = v.recs.find(r => r.c >= base / 10 && r.c <= base * 10);        // najnowsza cena trzymająca się dominanty
+            cena = ok ? ok.c : base;                                                  // gdyby wszystkie odstawały — dominanta/mediana
+          } else {
+            cena = v.recs[0].c;
+          }
+        }
         const leadDays = v.leadMax;   // najdłuższy zaobserwowany lead time (dni)
         if (cena != null || leadDays != null) corpus.set(idx, { cena, waluta: 'PLN', leadDays });
       }

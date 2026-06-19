@@ -496,6 +496,10 @@ body.light .adv-tab:hover{background:rgba(0,0,0,.05)}
 .cap-cell:hover{outline:2px solid var(--text2);outline-offset:-1px}
 #advancedPanel details>summary{list-style:none}
 #advancedPanel details>summary::-webkit-details-marker{display:none}
+.pq-grip{cursor:grab;color:var(--text3);font-size:13px;padding:0 1px;user-select:none}
+.pq-grip:active{cursor:grabbing}
+.pq-dragging{opacity:.4}
+.pq-drop-target{box-shadow:inset 0 2px 0 0 var(--teal)}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -903,6 +907,18 @@ body.light .adv-tab:hover{background:rgba(0,0,0,.05)}
         <div class="adv-pane-sub">Dostępne moce gniazd vs. obciążenie z harmonogramu (Firebird M_PRZEWOD_OP)</div>
       </div>
       <div style="flex:1"></div>
+      <label style="font-size:11px;color:var(--text2)">Pokaż:
+        <select id="capViewSel" onchange="capSetView(this.value)" style="margin-left:4px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">
+          <option value="util">Wykorzystanie %</option>
+          <option value="avail" selected>Dostępne h</option>
+          <option value="load">Obciążenie h</option>
+        </select>
+      </label>
+      <label style="font-size:11px;color:var(--text2)">Nr zlecenia:
+        <input id="capFilter" class="cap-inp" style="width:148px;margin-left:4px" placeholder="np. PRO-2024-00504" onkeyup="if(event.key==='Enter')capApplyFilter()" autocomplete="off">
+      </label>
+      <button class="btn btn-ghost btn-sm" onclick="capApplyFilter()" title="Pokaż rozkład w czasie tego zlecenia">🔎 Filtruj</button>
+      <button class="btn btn-ghost btn-sm" id="capFilterClear" onclick="capClearFilter()" title="Wyczyść filtr — pokaż całość" style="display:none">✕</button>
       <label style="font-size:11px;color:var(--text2)">Okno:
         <select id="capWeeks" onchange="loadCapacity(true)" style="margin-left:4px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px">
           <option value="8">8 tyg</option>
@@ -922,13 +938,12 @@ body.light .adv-tab:hover{background:rgba(0,0,0,.05)}
     <!-- Heatmapa wykorzystania -->
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;overflow-x:auto">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap">
-        <div style="font-size:12px;font-weight:700;color:var(--text2)">Wykorzystanie gniazd [%] wg tygodni</div>
+        <div id="capHeatTitle" style="font-size:12px;font-weight:700;color:var(--text2)">Wykorzystanie gniazd [%] wg tygodni</div>
         <div style="flex:1"></div>
-        <div style="display:flex;gap:10px;font-size:10px;color:var(--text3)">
+        <div id="capLegend" style="display:flex;gap:10px;font-size:10px;color:var(--text3)">
           <span><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:rgba(16,185,129,.18);vertical-align:-1px"></span> &lt;80</span>
           <span><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:rgba(245,158,11,.22);vertical-align:-1px"></span> 80–100</span>
-          <span><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:rgba(239,68,68,.25);vertical-align:-1px"></span> 100–115</span>
-          <span><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:#B91C1C;vertical-align:-1px"></span> &gt;115</span>
+          <span><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:rgba(220,38,38,.55);vertical-align:-1px"></span> &gt;100 (przekroczone)</span>
         </div>
       </div>
       <div id="capHeat" style="font-family:var(--font-mono)"></div>
@@ -971,16 +986,17 @@ body.light .adv-tab:hover{background:rgba(0,0,0,.05)}
 
   <!-- Obciążenie produkcji -->
   <section class="adv-pane" id="advPane-load">
-    <div class="adv-pane-head">
-      <div class="adv-pane-title">⚙️ Obciążenie produkcji</div>
-      <div class="adv-pane-sub">Wykorzystanie zasobów produkcyjnych rozłożone w czasie</div>
+    <div class="adv-pane-head" style="display:flex;align-items:flex-end;gap:12px">
+      <div>
+        <div class="adv-pane-title">⚙️ Obciążenie produkcji</div>
+        <div class="adv-pane-sub">Godziny pracy zleceń z kolejki priorytetów, rozbite na gniazda (operacje otwarte)</div>
+      </div>
+      <div style="flex:1"></div>
+      <span id="olStatus" style="font-size:11px;color:var(--text3)"></span>
+      <button class="btn btn-ghost btn-sm" onclick="olLoad(true)" title="Przelicz z bazy">↻</button>
     </div>
-    <div class="adv-empty">
-      <div class="adv-empty-ico">⚙️</div>
-      <div class="adv-empty-title">Obciążenie produkcji</div>
-      <div class="adv-empty-desc">Tutaj pojawi się rozkład obciążenia stanowisk w kolejnych tygodniach — ile godzin pracy przypada na każdy zasób względem jego dostępności, z wykryciem przeciążeń.</div>
-      <div class="adv-badge">⚙️ W przygotowaniu</div>
-    </div>
+    <div id="olMatrix" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;overflow-x:auto;font-family:var(--font-mono)"></div>
+    <div style="font-size:10px;color:var(--text3);margin-top:8px">Wiersze = zlecenia z kolejki („Priorytety produkcji"). Komórka = pozostałe godziny pracy zlecenia na danym gnieździe. „Σ gniazdo" = łączne obłożenie — porównaj z dostępnością w Capacity; „tyg. roboty" = ile tygodni pracy stoi w kolejce na gnieździe.</div>
   </section>
 
   <!-- Priorytety produkcji -->
@@ -2034,10 +2050,10 @@ async function exportProToExcel() {
 
     // Arkusz 2 — wartości szacowane wg podobieństwa
     if (estRows.length) {
-      const h2 = ['Indeks','Nazwa materiału','JM','Nr przewodnika PRO','N_NETTO','Cena (szac.)','Waluta','Wartość (szac.)','Wg indeksu','Dopasowanie %','Data dodania', ...extraH];
-      const r2 = estRows.map(r => { const c = prep(r); return [r.indeks||'', r.nazwaMat||'', r.jm||'', r.nrPro||'', round2(r.nNetto), round2(c.cena), c.waluta, round2(c.wartosc), r.est.z||'', r.est.score != null ? r.est.score : '', r.dataDodania||'', ...extra(c)]; });
+      const h2 = ['Indeks','Nazwa materiału','JM','Nr przewodnika PRO','N_NETTO','Cena (szac.)','Waluta','Wartość (szac.)','Wg indeksu','Dopasowanie %','Data dodania', ...extraH, 'Status płatności'];
+      const r2 = estRows.map(r => { const c = prep(r); return [r.indeks||'', r.nazwaMat||'', r.jm||'', r.nrPro||'', round2(r.nNetto), round2(c.cena), c.waluta, round2(c.wartosc), r.est.z||'', r.est.score != null ? r.est.score : '', r.dataDodania||'', ...extra(c), payStatusText(payMap.get(r.indeks))]; });
       const ws2 = XLSX.utils.aoa_to_sheet([h2, ...r2]);
-      ws2['!cols'] = [{wch:22},{wch:40},{wch:6},{wch:28},{wch:12},{wch:12},{wch:7},{wch:14},{wch:22},{wch:12},{wch:18}, ...extraW];
+      ws2['!cols'] = [{wch:22},{wch:40},{wch:6},{wch:28},{wch:12},{wch:12},{wch:7},{wch:14},{wch:22},{wch:12},{wch:18}, ...extraW, {wch:24}];
       XLSX.utils.sheet_add_aoa(ws2, sumaRows(estRows, h2.length), { origin: -1 });
       applyNumFmt(ws2, Object.assign({ 5: FMT_CENA, 7: FMT_VAL }, convert ? { 12: FMT_KURS } : {}));
       XLSX.utils.book_append_sheet(wb, ws2, 'PRO szacunki');
@@ -2102,7 +2118,7 @@ async function exportZamToExcel() {
 
     const headers = [
       'Indeks', 'Nazwa materiału', 'JM',
-      'Nr zamówienia', 'Nazwa zamówienia', 'Dostawca',
+      'Nr zamówienia', 'Nazwa zamówienia', 'Dostawca', 'Status płatności',
       'LP', 'Ilość', 'Cena ZAM', 'Waluta', 'Wartość',
       'Termin', 'Data realizacji', 'Opis pozycji'
     ];
@@ -2114,6 +2130,7 @@ async function exportZamToExcel() {
       r.nrZam       || '',
       r.nazwaZam    || '',
       r.nazwaKontr  || '',
+      r.stanOpis    || r.stanKod || '',
       r.lp          != null ? r.lp       : '',
       r.ilosc       != null ? r.ilosc    : '',
       r.cenaZam     != null ? r.cenaZam  : '',
@@ -2126,15 +2143,15 @@ async function exportZamToExcel() {
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...exRows]);
     ws['!cols'] = [
-      {wch:22},{wch:40},{wch:6},{wch:18},{wch:30},{wch:35},
+      {wch:22},{wch:40},{wch:6},{wch:18},{wch:30},{wch:35},{wch:20},
       {wch:5},{wch:10},{wch:11},{wch:7},{wch:12},{wch:12},{wch:14},{wch:30}
     ];
 
     // Podsumowanie wartości na końcu
     const sumWartosc = rows.reduce((s, r) => s + (r.wartosc || 0), 0);
-    const sumRow = ['', '', '', '', '', 'SUMA:', '', '', '', '', sumWartosc, '', '', ''];
+    const sumRow = new Array(headers.length).fill(''); sumRow[10] = 'SUMA:'; sumRow[11] = sumWartosc;
     XLSX.utils.sheet_add_aoa(ws, [sumRow], { origin: -1 });
-    applyNumFmt(ws, { 8: FMT_CENA, 10: FMT_VAL });   // Cena ZAM, Wartość
+    applyNumFmt(ws, { 9: FMT_CENA, 11: FMT_VAL });   // Cena ZAM, Wartość
 
     const wb = XLSX.utils.book_new();
     const sheetName = `ZAM_${kat}-${rok}-${symb}`.slice(0, 31);
@@ -2286,11 +2303,14 @@ function advSwitchTab(name) {
   document.querySelectorAll('#advancedPanel .adv-pane').forEach(p => p.classList.toggle('active', p.id === 'advPane-' + name));
   if (name === 'capacity' && !capData) loadCapacity();
   if (name === 'priority' && !pqLoaded) pqLoad();
+  if (name === 'load') olLoad();
 }
 
 // ── Capacity — zdolności produkcyjne (gniazda × tygodnie) ─────
 let capData = null;     // { weeks:[], gniazda:[], load:{ gniazdo:{ tydzień:{maszyna,praca} } } }
 let capConfig = null;   // { kalendarz, gniazda:[], wyjatki:[] }
+let capFilter = '';     // filtr po numerze zlecenia (puste = całość)
+let capView = 'avail';  // domyślnie dostępne h; też 'util' (%), 'load' (obciążenie h)
 
 async function loadCapacity(force) {
   const status = document.getElementById('capStatus');
@@ -2299,19 +2319,31 @@ async function loadCapacity(force) {
   try {
     const [cfgR, loadR] = await Promise.all([
       capConfig ? Promise.resolve(null) : fetch('/api/capacity/config').then(r => r.json()),
-      fetch('/api/capacity?weeks=' + encodeURIComponent(weeks) + (force ? '&_=' + Date.now() : '')).then(r => r.json()),
+      fetch('/api/capacity?weeks=' + encodeURIComponent(weeks) + '&q=' + encodeURIComponent(capFilter || '') + (force ? '&_=' + Date.now() : '')).then(r => r.json()),
     ]);
     if (cfgR) { if (!cfgR.ok) throw new Error(cfgR.error || 'config'); capConfig = cfgR.config; capMigrateConfig(); capInitForm(); }
     if (!loadR.ok) throw new Error(loadR.error || 'load');
     capData = loadR;
+    const fc = document.getElementById('capFilterClear'); if (fc) fc.style.display = capData.filtr ? '' : 'none';
     renderCapacity();
     renderCapCalendar();
     renderCapSettings();
-    if (status) status.textContent = `${capData.weeks.length} tyg · ${capData.gniazda.length} gniazd · dane z bazy: ${new Date(capData.generatedAt).toLocaleString('pl-PL')}`;
+    if (status) status.textContent = (capData.filtr ? `🔎 filtr: ${capData.filtr} · ` : '') + `${capData.weeks.length} tyg · ${capData.gniazda.length} gniazd · dane z bazy: ${new Date(capData.generatedAt).toLocaleString('pl-PL')}`;
   } catch (e) {
     if (status) status.textContent = '';
     showToast('Capacity: ' + e.message, true);
   }
+}
+
+function capApplyFilter() {
+  capFilter = (document.getElementById('capFilter').value || '').trim();
+  loadCapacity(true);
+}
+function capSetView(v) { capView = v; try { localStorage.setItem('mrp_capview', v); } catch (_) {} if (capData) renderCapacity(); }
+function capClearFilter() {
+  capFilter = '';
+  const el = document.getElementById('capFilter'); if (el) el.value = '';
+  loadCapacity(true);
 }
 
 function capGniazdo(id) { return capConfig.gniazda.find(g => g.id === id); }
@@ -2401,22 +2433,32 @@ function capWeekAvailable(g, wk) {
 }
 
 function capUtilColor(u) {
-  if (u < 80)  return ['rgba(16,185,129,.18)', '#34D399'];
-  if (u < 100) return ['rgba(245,158,11,.22)', '#FBBF24'];
-  if (u < 115) return ['rgba(239,68,68,.25)', '#F87171'];
-  return ['#B91C1C', '#fff'];
+  if (u < 80)   return ['rgba(16,185,129,.18)', '#34D399'];   // zielony — zapas mocy
+  if (u <= 100) return ['rgba(245,158,11,.22)', '#FBBF24'];   // żółty — do pełnego wykorzystania
+  return ['rgba(220,38,38,.55)', '#FECACA'];                   // czerwony — obciążenie > dostępne
 }
 
 function renderCapacity() {
   const weeks = capData.weeks, gn = capData.gniazda;
-  let sumAvail = 0, sumLoad = 0, over = 0;
+  const filtered = !!capData.filtr;
+  let sumAvail = 0, sumLoad = 0, over = 0, maxCell = 0, maxA = 0;
+  const weeksWithLoad = new Set(), gniazdaTknite = new Set();
   for (const g of gn) for (const wk of weeks) {
     const a = capWeekAvailable(g, wk), l = capWeekLoad(g, wk);
     sumAvail += a; sumLoad += l;
     if (a > 0 && l / a > 1) over++;
+    if (l > maxCell) maxCell = l;
+    if (a > maxA) maxA = a;
+    if (l > 0) { weeksWithLoad.add(wk); gniazdaTknite.add(g); }
   }
   const util = sumAvail > 0 ? Math.round(sumLoad / sumAvail * 100) : 0;
-  const kpi = [
+  const kpi = filtered ? [
+    ['🔎', 'Zlecenie', capData.filtr],
+    ['📈', 'Σ godzin', Math.round(sumLoad).toLocaleString('pl-PL') + ' h'],
+    ['🏭', 'Gniazda', gniazdaTknite.size + ' / ' + gn.length],
+    ['🗓️', 'Tygodnie', weeksWithLoad.size],
+    ['⚡', '% mocy (okno)', util + '%'],
+  ] : [
     ['🏭', 'Gniazda', gn.length],
     ['🗓️', 'Dostępne (okno)', Math.round(sumAvail).toLocaleString('pl-PL') + ' h'],
     ['📈', 'Obciążenie (okno)', Math.round(sumLoad).toLocaleString('pl-PL') + ' h'],
@@ -2424,29 +2466,62 @@ function renderCapacity() {
     ['🔴', 'Wąskie gardła', over + ' (gn.×tydz)'],
   ];
   document.getElementById('capKpi').innerHTML = kpi.map(([ic, lbl, val], i) =>
-    `<div class="adv-tile"><span class="adv-tile-ico">${ic}</span><span class="adv-tile-lbl">${lbl}</span><span class="adv-tile-val"${i === 3 && util > 100 ? ' style="color:var(--red)"' : ''}>${val}</span></div>`
+    `<div class="adv-tile"><span class="adv-tile-ico">${ic}</span><span class="adv-tile-lbl">${lbl}</span><span class="adv-tile-val"${!filtered && i === 3 && util > 100 ? ' style="color:var(--red)"' : ''}>${val}</span></div>`
   ).join('');
 
   const colW = 46;
   let h = `<div style="display:grid;grid-template-columns:118px repeat(${weeks.length},${colW}px);gap:3px;align-items:center">`;
-  h += `<div style="font-size:10px;color:var(--text3)">Gniazdo</div>`;
+  const hdrHint = filtered ? '(h zlec.)' : capView === 'avail' ? '(dost. h)' : capView === 'load' ? '(obc. h)' : '';
+  h += `<div style="font-size:10px;color:var(--text3)">Gniazdo${hdrHint ? ` <span style="color:var(--teal)">${hdrHint}</span>` : ''}</div>`;
   for (const wk of weeks) h += `<div style="text-align:center;font-size:9px;color:var(--text3)">${wk.replace('-', ' ')}</div>`;
   for (const g of gn) {
     const gnObj = capGniazdo(g);
     h += `<div style="font-size:11px;font-weight:600;color:var(--text2)" title="${gnObj?.nazwa || g} (${gnObj?.podstawaMocy || ''}) — ${Math.round(capBaseWeekHours(gnObj))} h/tydz bazowo">${g} <span style="color:var(--text3);font-weight:400">·${gnObj ? capSlots(gnObj) : 0}</span></div>`;
     for (const wk of weeks) {
       const a = capWeekAvailable(g, wk), l = capWeekLoad(g, wk);
-      const u = a > 0 ? Math.round(l / a * 100) : (l > 0 ? 999 : 0);
-      const [bg, fg] = capUtilColor(u);
-      const tip = `${g} ${wk}: obciążenie ${Math.round(l)} h / dostępne ${Math.round(a)} h`;
-      h += `<div class="cap-cell" onclick="capDrill('${g}','${wk}')" title="${tip} — kliknij po operacje" style="text-align:center;padding:5px 0;font-size:10px;font-weight:600;border-radius:3px;background:${bg};color:${fg}">${a > 0 ? u : (l > 0 ? '∞' : '–')}</div>`;
+      let bg, fg, txt, tip;
+      if (filtered) {
+        const rv = Math.round(l);
+        const aa = maxCell ? l / maxCell : 0;
+        bg = rv > 0 ? `rgba(45,212,191,${(0.06 + 0.34 * aa).toFixed(3)})` : '';
+        fg = rv > 0 ? '#CFFAF0' : 'var(--text3)';
+        txt = rv > 0 ? rv : '·';
+        tip = `${g} ${wk}: ${l.toFixed(1)} h zlecenia ${capData.filtr} (dostępne ${Math.round(a)} h)`;
+      } else if (capView === 'avail') {
+        const rv = Math.round(a);
+        bg = rv > 0 ? `rgba(45,212,191,${(0.06 + 0.34 * (maxA ? a / maxA : 0)).toFixed(3)})` : '';
+        fg = rv > 0 ? '#CFFAF0' : 'var(--text3)';
+        txt = rv > 0 ? rv : '·';
+        tip = `${g} ${wk}: dostępne ${Math.round(a)} h (obciążenie ${Math.round(l)} h)`;
+      } else if (capView === 'load') {
+        const rv = Math.round(l);
+        bg = rv > 0 ? `rgba(45,212,191,${(0.06 + 0.34 * (maxCell ? l / maxCell : 0)).toFixed(3)})` : '';
+        fg = rv > 0 ? '#CFFAF0' : 'var(--text3)';
+        txt = rv > 0 ? rv : '·';
+        tip = `${g} ${wk}: obciążenie ${Math.round(l)} h (dostępne ${Math.round(a)} h)`;
+      } else {
+        const u = a > 0 ? Math.round(l / a * 100) : (l > 0 ? 999 : 0);
+        [bg, fg] = capUtilColor(u);
+        txt = a > 0 ? u : (l > 0 ? '∞' : '–');
+        tip = `${g} ${wk}: obciążenie ${Math.round(l)} h / dostępne ${Math.round(a)} h`;
+      }
+      h += `<div class="cap-cell" onclick="capDrill('${g}','${wk}')" title="${tip} — kliknij po operacje" style="text-align:center;padding:5px 0;font-size:10px;font-weight:600;border-radius:3px;background:${bg};color:${fg}">${txt}</div>`;
     }
   }
   h += `</div>`;
   document.getElementById('capHeat').innerHTML = h;
+  // Dynamiczny tytuł + legenda (legenda % tylko w trybie wykorzystania)
+  const titleEl = document.getElementById('capHeatTitle');
+  if (titleEl) titleEl.textContent = filtered ? `Rozkład godzin zlecenia ${capData.filtr} [h] wg tygodni`
+    : capView === 'avail' ? 'Dostępne godziny [h] wg tygodni'
+    : capView === 'load'  ? 'Obciążenie [h] wg tygodni'
+    : 'Wykorzystanie gniazd [%] wg tygodni';
+  const legendEl = document.getElementById('capLegend');
+  if (legendEl) legendEl.style.display = (!filtered && capView === 'util') ? 'flex' : 'none';
 }
 
 function capInitForm() {
+  try { const v = localStorage.getItem('mrp_capview'); if (v) { capView = v; const vs = document.getElementById('capViewSel'); if (vs) vs.value = v; } } catch (_) {}
   const sel = document.getElementById('wxGniazdo');
   if (!sel) return;
   sel.innerHTML = `<option value="*">Wszystkie</option>` + capConfig.gniazda.map(g => `<option value="${g.id}">${g.id} — ${g.nazwa}</option>`).join('');
@@ -2520,7 +2595,7 @@ async function capDrill(g, wk) {
   box.innerHTML = `<div style="font-size:12px;color:var(--text3)">Ładowanie operacji ${g} / ${wk}…</div>`;
   box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   try {
-    const d = await fetch(`/api/capacity/ops?gniazdo=${encodeURIComponent(g)}&week=${encodeURIComponent(wk)}`).then(r => r.json());
+    const d = await fetch(`/api/capacity/ops?gniazdo=${encodeURIComponent(g)}&week=${encodeURIComponent(wk)}&q=${encodeURIComponent(capFilter || '')}`).then(r => r.json());
     if (!d.ok) throw new Error(d.error || 'błąd');
     const esc = s => (s == null ? '' : String(s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])));
     const basisH = d.basis === 'praca' ? 'hPrac' : 'hMasz';
@@ -2557,12 +2632,12 @@ function renderCapSettings() {
   if (!el || !capConfig) return;
   const cal = capConfig.kalendarz;
   const dni = [[1, 'Pon'], [2, 'Wt'], [3, 'Śr'], [4, 'Czw'], [5, 'Pt'], [6, 'Sob'], [7, 'Nd']];
-  const dniHtml = dni.map(([n, l]) => `<label style="margin-right:8px"><input type="checkbox" class="setDni" value="${n}" ${cal.dniRobocze.includes(n) ? 'checked' : ''} onchange="capRecalcSettingsHours()"> ${l}</label>`).join('');
+  const dniHtml = dni.map(([n, l]) => `<label style="margin-right:8px"><input type="checkbox" class="setDni" value="${n}" ${cal.dniRobocze.includes(n) ? 'checked' : ''} onchange="capSettingsChanged()"> ${l}</label>`).join('');
   const zmiany = Math.max(1, cal.zmiany || 1);
   const calHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:14px;font-size:11px;color:var(--text2)">
       <label>Liczba zmian <input type="number" id="setZmiany" class="cap-inp" min="1" max="3" step="1" value="${zmiany}" style="width:48px" onchange="capSettingsZmianyChange()"></label>
-      <label>Godz./zmianę <input type="number" id="setHZmiana" class="cap-inp" min="1" max="12" step="0.5" value="${cal.hZmiana}" style="width:56px" oninput="capRecalcSettingsHours()"></label>
-      <label>Przerwy [h/zm.] <input type="number" id="setPrzerwy" class="cap-inp" min="0" max="4" step="0.25" value="${cal.przerwy}" style="width:56px" oninput="capRecalcSettingsHours()"></label>
+      <label>Godz./zmianę <input type="number" id="setHZmiana" class="cap-inp" min="1" max="12" step="0.5" value="${cal.hZmiana}" style="width:56px" oninput="capSettingsChanged()"></label>
+      <label>Przerwy [h/zm.] <input type="number" id="setPrzerwy" class="cap-inp" min="0" max="4" step="0.25" value="${cal.przerwy}" style="width:56px" oninput="capSettingsChanged()"></label>
       <span>Dni robocze: ${dniHtml}</span>
     </div>`;
   const zmHead = Array.from({ length: zmiany }, (_, i) => `Z${i + 1}`).join(' ');
@@ -2570,10 +2645,10 @@ function renderCapSettings() {
     const manual = g.trybMocy === 'godziny';
     const arr = g.stanowiskaNaZmianie || [];
     const stanInputs = Array.from({ length: zmiany }, (_, i) =>
-      `<input type="number" class="cap-inp" min="0" max="99" step="1" value="${arr[i] != null ? arr[i] : 0}" data-gid="${g.id}" data-f="stanZm" data-zm="${i}" style="width:38px" title="${g.id} — zmiana ${i + 1}" oninput="capRecalcSettingsHours()">`
+      `<input type="number" class="cap-inp" min="0" max="99" step="1" value="${arr[i] != null ? arr[i] : 0}" data-gid="${g.id}" data-f="stanZm" data-zm="${i}" style="width:38px" title="${g.id} — zmiana ${i + 1}" oninput="capSettingsChanged()">`
     ).join(' ');
     const hCell = manual
-      ? `<input type="number" class="cap-inp" min="0" step="1" value="${g.godzinyTydz != null ? g.godzinyTydz : ''}" data-gid="${g.id}" data-f="godzinyTydz" style="width:64px;text-align:right" oninput="capRecalcSettingsHours()"> h`
+      ? `<input type="number" class="cap-inp" min="0" step="1" value="${g.godzinyTydz != null ? g.godzinyTydz : ''}" data-gid="${g.id}" data-f="godzinyTydz" style="width:64px;text-align:right" oninput="capSettingsChanged()"> h`
       : `<span id="capH-${g.id}">–</span> h`;
     return `<tr style="border-top:1px solid var(--border)">
       <td style="padding:4px 8px;font-weight:600;font-size:11px">${g.id}</td>
@@ -2582,10 +2657,10 @@ function renderCapSettings() {
         <option value="stanowiska" ${!manual ? 'selected' : ''}>stanowiska</option>
         <option value="godziny" ${manual ? 'selected' : ''}>godziny</option></select></td>
       <td style="padding:4px 8px;white-space:nowrap">${stanInputs}</td>
-      <td style="padding:4px 8px"><select class="cap-inp" data-gid="${g.id}" data-f="podstawaMocy">
+      <td style="padding:4px 8px"><select class="cap-inp" data-gid="${g.id}" data-f="podstawaMocy" onchange="capSettingsChanged()">
         <option value="maszyna" ${g.podstawaMocy === 'maszyna' ? 'selected' : ''}>maszyna</option>
         <option value="praca" ${g.podstawaMocy === 'praca' ? 'selected' : ''}>praca</option></select></td>
-      <td style="padding:4px 8px"><input type="number" class="cap-inp" min="0.1" max="1" step="0.05" value="${g.wydajnosc}" data-gid="${g.id}" data-f="wydajnosc" style="width:58px${manual ? ';opacity:.4' : ''}" ${manual ? 'disabled' : ''} oninput="capRecalcSettingsHours()"></td>
+      <td style="padding:4px 8px"><input type="number" class="cap-inp" min="0.1" max="1" step="0.05" value="${g.wydajnosc}" data-gid="${g.id}" data-f="wydajnosc" style="width:58px${manual ? ';opacity:.4' : ''}" ${manual ? 'disabled' : ''} oninput="capSettingsChanged()"></td>
       <td style="padding:4px 8px;text-align:right;font-size:11px;color:var(--green);font-weight:600">${hCell}</td>
     </tr>`;
   }).join('');
@@ -2594,9 +2669,10 @@ function renderCapSettings() {
       <tbody>${gnHtml}</tbody></table>
       <div style="display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap">
         <button class="btn btn-primary btn-sm" onclick="capSaveSettings()">💾 Zapisz ustawienia</button>
+        <span id="capSetSaved" style="font-size:10px;color:var(--green)"></span>
         <span style="font-size:11px;color:var(--text2)">Σ dostępne: <span id="capHTotal" style="color:var(--green);font-weight:700">–</span> h/tydz (bazowo, bez wyjątków)</span>
       </div>
-      <div style="font-size:10px;color:var(--text3);margin-top:6px">Kolumny Z1/Z2/Z3 = ile stanowisk pracuje na danej zmianie (możesz mieć różnie na każdej). Tryb „godziny" = wpisujesz h/tydz wprost; stanowiska są wtedy odniesieniem dla urlopów.</div>`;
+      <div style="font-size:10px;color:var(--text3);margin-top:6px">Zmiany zapisują się automatycznie (wspólne dla wszystkich). Kolumny Z1/Z2/Z3 = ile stanowisk pracuje na danej zmianie. Tryb „godziny" = wpisujesz h/tydz wprost; stanowiska są wtedy odniesieniem dla urlopów.</div>`;
   capRecalcSettingsHours();
 }
 
@@ -2654,6 +2730,7 @@ function capSettingsZmianyChange() {
   capSyncSettingsToConfig();
   capMigrateConfig();
   renderCapSettings();
+  capSaveSettings(true);
 }
 
 // Zmiana trybu (stanowiska↔godziny) — prefill godzin wartością wyliczoną i przerysuj
@@ -2663,14 +2740,21 @@ function capSettingsTrybChange() {
     if (g.trybMocy === 'godziny' && g.godzinyTydz == null) g.godzinyTydz = Math.round(capBaseWeekHours(g));
   }
   renderCapSettings();
+  capSaveSettings(true);
 }
 
-async function capSaveSettings() {
+let _capSaveTimer = null;
+function capSaveSettingsDebounced() { clearTimeout(_capSaveTimer); _capSaveTimer = setTimeout(() => capSaveSettings(true), 700); }
+// Wywoływane przy każdej zmianie inputu ustawień: przelicz na żywo + auto-zapis
+function capSettingsChanged() { capRecalcSettingsHours(); capSaveSettingsDebounced(); }
+
+async function capSaveSettings(silent) {
   capSyncSettingsToConfig();
-  if (!capConfig.kalendarz.dniRobocze.length) { showToast('Zaznacz min. 1 dzień roboczy', true); return; }
+  if (!capConfig.kalendarz.dniRobocze.length) { if (!silent) showToast('Zaznacz min. 1 dzień roboczy', true); return; }
   await capSaveConfig();
   renderCapacity();
-  showToast('Ustawienia zapisane');
+  const s = document.getElementById('capSetSaved'); if (s) { s.textContent = '✓ zapisano'; setTimeout(() => { if (s.textContent === '✓ zapisano') s.textContent = ''; }, 2000); }
+  if (!silent) showToast('Ustawienia zapisane');
 }
 
 // ── Priorytety produkcji — ręczna kolejka zleceń „W produkcji" ─
@@ -2684,10 +2768,14 @@ async function pqLoad() {
   try {
     const d = await fetch('/api/prod-queue').then(r => r.json());
     pqQueue = (d.items || []).slice();
+    for (const it of pqQueue) if (!it.etap) it.etap = 1;          // migracja: brak etapu = etap 1
   } catch (e) { pqQueue = []; showToast('Kolejka: ' + e.message, true); }
   pqRender();
   pqLoadBraki();
 }
+
+// Klucz pozycji = numer zlecenia + etap (stabilny; priorytet jest niezależny)
+function pqKey(it) { return it.nr + '#' + (it.etap || 1); }
 
 function pqOnSearch() {
   clearTimeout(_pqSearchTimer);
@@ -2726,11 +2814,27 @@ function pqAdd(j) {
   const o = JSON.parse(decodeURIComponent(j));
   if (pqQueue.some(it => it.nr === o.nr)) return;
   const maxP = pqQueue.reduce((m, it) => Math.max(m, it.priorytet || 0), 0);
-  pqQueue.push({ kat: o.kat, rok: o.rok, symb: o.symb, nr: o.nr, nazwa: o.nazwa, klient: o.klient, termin: o.termin, priorytet: maxP + 1, notatka: '' });
+  pqQueue.push({ kat: o.kat, rok: o.rok, symb: o.symb, nr: o.nr, etap: 1, etapNazwa: '', nazwa: o.nazwa, klient: o.klient, termin: o.termin, priorytet: maxP + 1, notatka: '' });
   document.getElementById('pqResults').style.display = 'none';
   document.getElementById('pqSearch').value = '';
   pqRender();
   pqLoadBraki();
+  pqAutoSave();
+}
+
+// Dodaj kolejny etap istniejącego zlecenia (osobny priorytet, wspólne zlecenie)
+function pqAddStage(nr) {
+  const items = pqQueue.filter(x => x.nr === nr);
+  if (!items.length) return;
+  const base = items[0];
+  const maxEtap = items.reduce((m, x) => Math.max(m, x.etap || 1), 0);
+  const maxP = pqQueue.reduce((m, x) => Math.max(m, x.priorytet || 0), 0);
+  pqQueue.push({ kat: base.kat, rok: base.rok, symb: base.symb, nr: base.nr, etap: maxEtap + 1, etapNazwa: '',
+    nazwa: base.nazwa, klient: base.klient, termin: base.termin, priorytet: maxP + 1, notatka: '',
+    brakiPln: base.brakiPln, brakiPoz: base.brakiPoz });   // braki współdzielone ze zleceniem
+  pqRender();
+  pqLoadBraki();
+  pqAutoSave();
 }
 
 function pqSorted() { return pqQueue.slice().sort((a, b) => (a.priorytet || 0) - (b.priorytet || 0)); }
@@ -2742,42 +2846,89 @@ function pqRender() {
   const today = new Date().toISOString().slice(0, 10);
   const esc = s => (s == null ? '' : String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c])));
   const arr = pqSorted();
+  const stageCount = {};
+  for (const it of pqQueue) stageCount[it.nr] = (stageCount[it.nr] || 0) + 1;
   el.innerHTML = arr.map((it, i) => {
     const overdue = it.termin && it.termin < today;
+    const id = pqKey(it);
+    const etapBadge = stageCount[it.nr] > 1 ? `<span style="font-size:9px;font-weight:700;color:#FBBF24;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);padding:1px 5px;border-radius:6px;white-space:nowrap" title="Etap ${it.etap} zlecenia ${it.nr}">E${it.etap}</span>` : '';
     const b = it.brakiPln;
     const brakiCell = (b === undefined) ? '<span style="color:var(--text3)" title="liczenie…">⏳</span>'
       : (b === null) ? '<span style="color:var(--text3)" title="brak danych / błąd wyceny">—</span>'
       : (b > 0) ? `<span style="color:var(--red);font-weight:700">${fmt(b, 0)} PLN</span>${it.brakiPoz ? ` <span style="color:var(--text3);font-size:9px">(${it.brakiPoz})</span>` : ''}`
       : '<span style="color:var(--green);font-weight:700" title="brak niedoborów materiałowych — gotowe">✓ 0</span>';
-    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border)">
-      <input type="number" class="cap-inp" style="width:46px;text-align:center" value="${it.priorytet}" min="1" onchange="pqSetPrio('${it.nr}', this.value)" title="Priorytet (mniejszy = wcześniej)">
+    return `<div data-id="${id}" ondragover="pqDragOver(event)" ondrop="pqDrop(event,'${id}')" ondragleave="pqDragLeave(event)" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border)">
+      <span class="pq-grip" draggable="true" ondragstart="pqDragStart(event,'${id}')" ondragend="pqDragEnd(event)" title="Przeciągnij, aby zmienić kolejność">⠿</span>
+      <input type="number" class="cap-inp" style="width:46px;text-align:center" value="${it.priorytet}" min="1" onchange="pqSetPrio('${id}', this.value)" title="Priorytet (mniejszy = wcześniej)">
       <div style="display:flex;flex-direction:column;gap:1px">
-        <button class="btn btn-ghost btn-sm" style="padding:0 5px;line-height:1.25;font-size:9px" onclick="pqMove('${it.nr}',-1)" ${i === 0 ? 'disabled' : ''}>▲</button>
-        <button class="btn btn-ghost btn-sm" style="padding:0 5px;line-height:1.25;font-size:9px" onclick="pqMove('${it.nr}',1)" ${i === arr.length - 1 ? 'disabled' : ''}>▼</button>
+        <button class="btn btn-ghost btn-sm" style="padding:0 5px;line-height:1.25;font-size:9px" onclick="pqMove('${id}',-1)" ${i === 0 ? 'disabled' : ''}>▲</button>
+        <button class="btn btn-ghost btn-sm" style="padding:0 5px;line-height:1.25;font-size:9px" onclick="pqMove('${id}',1)" ${i === arr.length - 1 ? 'disabled' : ''}>▼</button>
       </div>
       <span style="font-family:var(--font-mono);font-size:12px;color:var(--teal);font-weight:700;white-space:nowrap;width:128px">${it.nr}</span>
+      ${etapBadge}
       <span style="font-size:11px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(it.nazwa)}">${esc(it.nazwa)}</span>
       <span style="font-size:10px;color:var(--text3);width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.klient)}</span>
       <span style="font-size:10px;width:86px;text-align:right;color:${overdue ? 'var(--red)' : 'var(--text2)'}">${it.termin || '—'}</span>
-      <span style="font-size:11px;width:120px;text-align:right;white-space:nowrap" title="Wartość braków materiałowych zlecenia (PLN)">${brakiCell}</span>
-      <input class="cap-inp" style="width:118px;font-size:10px" placeholder="notatka" value="${esc(it.notatka)}" onchange="pqSetNote('${it.nr}', this.value)">
-      <button class="btn btn-ghost btn-sm" style="padding:2px 7px" onclick="pqRemove('${it.nr}')" title="Usuń z kolejki">✕</button>
+      <span style="font-size:11px;width:120px;text-align:right;white-space:nowrap" title="Wartość braków materiałowych zlecenia (PLN, wspólna dla etapów)">${brakiCell}</span>
+      <input class="cap-inp" style="width:104px;font-size:10px" placeholder="notatka" value="${esc(it.notatka)}" onchange="pqSetNote('${id}', this.value)">
+      <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" onclick="pqAddStage('${it.nr}')" title="Dodaj etap tego zlecenia (osobny priorytet)">＋E</button>
+      <button class="btn btn-ghost btn-sm" style="padding:2px 7px" onclick="pqRemove('${id}')" title="Usuń z kolejki">✕</button>
     </div>`;
   }).join('');
 }
 
-function pqSetPrio(nr, val) { const it = pqQueue.find(x => x.nr === nr); if (it) { it.priorytet = Math.max(1, parseInt(val, 10) || 1); pqRender(); } }
-function pqSetNote(nr, val) { const it = pqQueue.find(x => x.nr === nr); if (it) it.notatka = val; }
-function pqRemove(nr) { pqQueue = pqQueue.filter(x => x.nr !== nr); pqRender(); }
-function pqMove(nr, dir) {
+function pqSetPrio(id, val) { const it = pqQueue.find(x => pqKey(x) === id); if (it) { it.priorytet = Math.max(1, parseInt(val, 10) || 1); pqRender(); pqAutoSave(); } }
+function pqSetNote(id, val) { const it = pqQueue.find(x => pqKey(x) === id); if (it) { it.notatka = val; pqAutoSave(); } }
+function pqRemove(id) { pqQueue = pqQueue.filter(x => pqKey(x) !== id); pqRender(); pqAutoSave(); }
+function pqMove(id, dir) {
   const sorted = pqSorted();
-  const idx = sorted.findIndex(x => x.nr === nr);
+  const idx = sorted.findIndex(x => pqKey(x) === id);
   const j = idx + dir;
   if (j < 0 || j >= sorted.length) return;
   const a = sorted[idx], b = sorted[j];
   const tmp = a.priorytet; a.priorytet = b.priorytet; b.priorytet = tmp;   // zamień priorytety sąsiadów
-  pqRender();
+  pqRender(); pqAutoSave();
 }
+
+// ── Drag & drop kolejki (przeciąganie wierszy + renumeracja 1..N) ──
+let _pqDragId = null;
+function pqDragStart(e, id) {
+  _pqDragId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', id); } catch (_) {}
+  const row = e.target.closest('[data-id]');
+  if (row) { row.classList.add('pq-dragging'); try { e.dataTransfer.setDragImage(row, 24, 14); } catch (_) {} }
+}
+function pqDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const row = e.currentTarget;
+  document.querySelectorAll('#pqList .pq-drop-target').forEach(r => { if (r !== row) r.classList.remove('pq-drop-target'); });
+  row.classList.add('pq-drop-target');
+}
+function pqDragLeave(e) { e.currentTarget.classList.remove('pq-drop-target'); }
+function pqDragEnd() {
+  _pqDragId = null;
+  document.querySelectorAll('#pqList .pq-dragging, #pqList .pq-drop-target').forEach(r => r.classList.remove('pq-dragging', 'pq-drop-target'));
+}
+function pqDrop(e, targetId) {
+  e.preventDefault();
+  document.querySelectorAll('#pqList .pq-drop-target').forEach(r => r.classList.remove('pq-drop-target'));
+  if (!_pqDragId || _pqDragId === targetId) { _pqDragId = null; return; }
+  const arr = pqSorted();
+  const moved = arr.find(x => pqKey(x) === _pqDragId);
+  if (!moved) { _pqDragId = null; return; }
+  const rest = arr.filter(x => pqKey(x) !== _pqDragId);
+  const toIdx = rest.findIndex(x => pqKey(x) === targetId);
+  rest.splice(toIdx < 0 ? rest.length : toIdx, 0, moved);   // wstaw przed pozycją docelową
+  rest.forEach((it, i) => it.priorytet = i + 1);            // renumeruj priorytety 1..N
+  _pqDragId = null;
+  pqRender(); pqAutoSave();
+}
+
+// Auto-zapis kolejki (debounce) — wszystko trwałe, wspólne dla wszystkich
+let _pqSaveTimer = null;
+function pqAutoSave() { clearTimeout(_pqSaveTimer); _pqSaveTimer = setTimeout(() => pqSave(), 500); }
 
 async function pqSave() {
   try {
@@ -2796,7 +2947,8 @@ async function pqLoadBraki(force) {
   if (force) for (const it of todo) it.brakiPln = undefined;   // ⏳ przy wymuszeniu
   pqRender();
   try {
-    const orders = todo.map(it => ({ kat: it.kat, rok: it.rok, symb: it.symb }));
+    const om = new Map(); for (const it of todo) om.set(it.nr, { kat: it.kat, rok: it.rok, symb: it.symb });   // dedup po zleceniu (etapy współdzielą)
+    const orders = [...om.values()];
     const d = await fetch('/api/order-braki', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orders }) }).then(r => r.json());
     if (d.ok && d.braki) {
       for (const it of todo) {
@@ -2812,6 +2964,71 @@ async function pqLoadBraki(force) {
     _pqBrakiInflight = false;
     pqRender();
   }
+}
+
+// ── Obłożenie produkcji — macierz zlecenie × gniazdo ──────────
+let olData = null;
+let _olSig = '';
+
+async function olLoad(force) {
+  if (!pqLoaded) await pqLoad();                                  // wspólna kolejka z Priorytetów
+  if (!capConfig) { try { const c = await fetch('/api/capacity/config').then(r => r.json()); if (c.ok) { capConfig = c.config; capMigrateConfig(); } } catch(_) {} }
+  if (!pqQueue.length) { olRender(null); return; }
+  const sig = pqQueue.map(it => it.nr).sort().join('|');
+  if (olData && !force && sig === _olSig) { olRender(olData); return; }   // cache, póki kolejka bez zmian
+  const st = document.getElementById('olStatus'); if (st) st.textContent = 'Liczę obłożenie z bazy…';
+  try {
+    const om = new Map(); for (const it of pqQueue) om.set(it.nr, { kat: it.kat, rok: it.rok, symb: it.symb });   // jedno zlecenie = jeden wiersz (etapy współdzielą obłożenie)
+    const orders = [...om.values()];
+    const d = await fetch('/api/order-load', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orders }) }).then(r => r.json());
+    if (!d.ok) throw new Error(d.error || 'błąd');
+    olData = d; _olSig = sig;
+    olRender(d);
+  } catch (e) { showToast('Obłożenie: ' + e.message, true); }
+  if (st) st.textContent = '';
+}
+
+function olRender(d) {
+  const el = document.getElementById('olMatrix');
+  if (!d || !pqQueue.length) { el.innerHTML = `<div style="font-size:12px;color:var(--text3);font-family:var(--font-sans)">Kolejka pusta — dodaj zlecenia w zakładce „Priorytety produkcji".</div>`; return; }
+  const gn = d.gniazda;
+  const _seen = new Set();
+  const orders = pqSorted().filter(it => { if (_seen.has(it.nr)) return false; _seen.add(it.nr); return true; });   // jedno zlecenie = jeden wiersz (etapy współdzielą)
+  const cellH = (nr, g) => {
+    const c = d.load[nr] && d.load[nr][g]; if (!c) return 0;
+    const gObj = capConfig && capGniazdo(g);
+    return (gObj && gObj.podstawaMocy === 'praca') ? c.praca : c.maszyna;
+  };
+  let maxCell = 0, grand = 0; const colSum = {};
+  for (const it of orders) for (const g of gn) { const v = cellH(it.nr, g); if (v > maxCell) maxCell = v; colSum[g] = (colSum[g] || 0) + v; grand += v; }
+  const esc = s => (s == null ? '' : String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c])));
+  const stick = 'position:sticky;left:0;background:var(--bg2)';
+  let h = `<table style="border-collapse:collapse;font-size:11px;white-space:nowrap"><thead><tr>`;
+  h += `<th style="text-align:left;padding:5px 8px;color:var(--text3);font-size:10px;${stick}">Zlecenie</th>`;
+  for (const g of gn) h += `<th style="text-align:right;padding:5px 6px;color:var(--text3);font-size:10px;min-width:46px" title="${capConfig && capGniazdo(g) ? esc(capGniazdo(g).nazwa) : g}">${g}</th>`;
+  h += `<th style="text-align:right;padding:5px 8px;color:var(--text2);font-size:10px">Σ h</th></tr></thead><tbody>`;
+  for (const it of orders) {
+    let rowSum = 0;
+    h += `<tr style="border-top:1px solid var(--border)">`;
+    h += `<td style="padding:4px 8px;color:var(--teal);font-weight:700;${stick}" title="${esc(it.nazwa)}">${it.nr}</td>`;
+    for (const g of gn) {
+      const v = cellH(it.nr, g); rowSum += v;
+      const a = maxCell ? v / maxCell : 0;
+      const bg = v > 0 ? `background:rgba(45,212,191,${(0.05 + 0.32 * a).toFixed(3)})` : '';
+      h += `<td style="padding:4px 6px;text-align:right;${bg}">${v > 0 ? Math.round(v) : '<span style="color:var(--text3)">·</span>'}</td>`;
+    }
+    h += `<td style="padding:4px 8px;text-align:right;font-weight:700;color:var(--text)">${Math.round(rowSum)}</td></tr>`;
+  }
+  h += `<tr style="border-top:2px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;color:var(--text2);position:sticky;left:0;background:var(--bg3)">Σ gniazdo</td>`;
+  for (const g of gn) h += `<td style="padding:5px 6px;text-align:right;font-weight:700;color:var(--text)">${Math.round(colSum[g] || 0)}</td>`;
+  h += `<td style="padding:5px 8px;text-align:right;font-weight:800;color:var(--text)">${Math.round(grand)}</td></tr>`;
+  if (capConfig) {
+    h += `<tr style="background:var(--bg3)"><td style="padding:4px 8px;font-size:10px;color:var(--text3);position:sticky;left:0;background:var(--bg3)" title="Σ obłożenie ÷ dostępność/tydzień gniazda">tyg. roboty</td>`;
+    for (const g of gn) { const gObj = capGniazdo(g); const cap = gObj ? capBaseWeekHours(gObj) : 0; const wk = cap > 0 ? (colSum[g] || 0) / cap : null; h += `<td style="padding:4px 6px;text-align:right;font-size:10px;color:${wk != null && wk > 4 ? 'var(--red)' : 'var(--text3)'}">${wk != null ? wk.toFixed(1) : '—'}</td>`; }
+    h += `<td></td></tr>`;
+  }
+  h += `</tbody></table>`;
+  el.innerHTML = h;
 }
 
 // ── Analiza dostawcy — należności do zapłaty wg dostawcy ──────
