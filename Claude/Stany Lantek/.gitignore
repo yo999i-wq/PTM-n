@@ -1,0 +1,12 @@
+node_modules/
+resp.json
+*.log
+
+# Dane logowania do bazy (Firebird/ERP) - NIE commitowac
+config.json
+
+# Dane firmowe / eksporty
+*.xlsx
+*.xls
+data/
+korekty/
