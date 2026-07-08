@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weryfikacja stanów Lantek ↔ ERP</title>
+<style>
+  :root{
+    --bg:#0f1720; --panel:#17212b; --panel2:#1e2b38; --line:#2b3a49;
+    --txt:#e6edf3; --muted:#8aa0b3; --accent:#3b9dff; --accent2:#1b6fc9;
+    --ok:#2ea043; --warn:#d29922; --bad:#e5534b; --only:#a371f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Segoe UI,system-ui,Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+  header{padding:18px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0;font-weight:600}
+  header .sub{color:var(--muted);font-size:12px}
+  main{padding:20px 24px;max-width:1500px;margin:0 auto}
+  .drop{display:block;border:2px dashed var(--line);border-radius:12px;padding:34px;text-align:center;background:var(--panel);
+        transition:.15s;cursor:pointer}
+  .drop.hover{border-color:var(--accent);background:var(--panel2)}
+  .drop b{color:var(--accent)}
+  .drop input{display:none}
+  .btn{background:var(--accent2);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px}
+  .btn:hover{background:var(--accent)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .cards{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:120px}
+  .card .n{font-size:22px;font-weight:700}
+  .card .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .card.bad .n{color:var(--bad)} .card.ok .n{color:var(--ok)} .card.only .n{color:var(--only)} .card.warn .n{color:var(--warn)}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
+  .toolbar input[type=text],.toolbar select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+        padding:7px 10px;border-radius:8px;font-size:13px}
+  .chip{padding:5px 11px;border-radius:20px;border:1px solid var(--line);cursor:pointer;font-size:12px;background:var(--panel)}
+  .chip.active{background:var(--accent2);border-color:var(--accent2);color:#fff}
+  .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:70vh}
+  table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
+  th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right}
+  th{position:sticky;top:0;background:var(--panel2);cursor:pointer;user-select:none;z-index:1;font-weight:600}
+  th.l,td.l{text-align:left}
+  tbody tr:hover{background:var(--panel2)}
+  td.num{font-variant-numeric:tabular-nums}
+  .pill{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+  .pill.ROZJAZD{background:#3a1e1c;color:#ff8a80}
+  .pill.ZGODNE{background:#12331c;color:#7ee2a0}
+  .pill.TYLKO_LANTEK{background:#2a1e3a;color:#c9a2ff}
+  .pill.TYLKO_ERP{background:#1e2e3a;color:#8ecbff}
+  .pos{color:var(--bad)} .neg{color:var(--warn)}
+  .muted{color:var(--muted)}
+  .warnbadge{color:var(--warn);cursor:help}
+  #status{color:var(--muted);font-size:12px}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);
+        border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .hint{color:var(--muted);font-size:12px;margin-top:8px;line-height:1.5}
+</style>
+</head>
+<body>
+<header>
+  <h1>Weryfikacja stanów <span style="color:var(--accent)">Lantek</span> ↔ <span style="color:var(--accent)">ERP</span></h1>
+  <span class="sub">poziom Magazyn + Indeks (bez partii) · profile w <b>mb</b>, arkusze w <b>szt</b> · stan ERP: bieżący</span>
+  <span style="flex:1"></span>
+  <span id="status"></span>
+</header>
+<main>
+  <label class="drop" id="drop">
+    <input type="file" id="file" accept=".xlsx,.xls">
+    <div>Przeciągnij tu plik <b>„Stan magazynowy … .xlsx"</b> z Lanteka albo <b>kliknij, aby wybrać</b></div>
+    <div class="hint">Porównywane magazyny: ML2, ML3, MO2, MO3. Stan ERP z kartoteki M_KSM (Firebird EUROPA), przeliczany na sztuki.</div>
+  </label>
+
+  <div id="results" style="display:none">
+    <div class="cards" id="cards"></div>
+
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="szukaj: indeks / nazwa…" style="min-width:240px">
+      <select id="magf"><option value="">wszystkie magazyny</option></select>
+      <span id="chips"></span>
+      <span style="flex:1"></span>
+      <button class="btn ghost" id="reload">↻ Odśwież stan ERP</button>
+      <button class="btn" id="csv">⭳ Eksport CSV</button>
+    </div>
+
+    <div class="tablewrap">
+      <table id="tbl">
+        <thead><tr id="hrow"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="hint" id="foot"></div>
+  </div>
+</main>
+
+<script>
+const COLS = [
+  {k:'status', t:'Status', l:true, fmt:v=>`<span class="pill ${v}">${v.replace('_',' ')}</span>`},
+  {k:'mag', t:'Mag.', l:true},
+  {k:'indeks', t:'Indeks', l:true},
+  {k:'nazwa', t:'Nazwa', l:true},
+  {k:'klasa', t:'Klasa', l:true},
+  {k:'jedn', t:'Jedn.', l:true},
+  {k:'lantek', t:'Lantek', num:true},
+  {k:'erp_br', t:'ERP', num:true},
+  {k:'d_br', t:'Δ', num:true, diff:true},
+  {k:'lantek_szt', t:'Lantek szt', num:true},
+  {k:'erp_partie', t:'Partie', num:true},
+  {k:'lantek_dost', t:'Lantek dost.', num:true},
+];
+let DATA=null, sortK='status', sortDir=1, filterStatus='', filterMag='', q='';
+
+const $=s=>document.querySelector(s);
+const drop=$('#drop'), fileInput=$('#file');
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('hover')});
+drop.addEventListener('dragleave',()=>drop.classList.remove('hover'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('hover');if(e.dataTransfer.files[0])upload(e.dataTransfer.files[0])});
+fileInput.addEventListener('change',()=>{if(fileInput.files[0])upload(fileInput.files[0])});
+
+function setStatus(html){$('#status').innerHTML=html}
+
+async function upload(file, refresh){
+  setStatus(`<span class="spinner"></span> Wczytuję ${file? file.name : ''} i pobieram stany ERP…`);
+  const fd=new FormData();
+  if(file) fd.append('plik',file);
+  try{
+    const r=await fetch('/api/verify'+(refresh?'?refresh=1':''),{method:'POST',body:fd});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||'Błąd');
+    DATA=j; window._lastFile=file||window._lastFile;
+    render();
+    const d=new Date(j.erpTs);
+    setStatus(`Plik: <b>${j.plik}</b> · ${j.wierszyExcel} wierszy Excel · ERP: ${j.erpZindeksow} indeksów (${d.toLocaleTimeString('pl-PL')})`);
+    $('#results').style.display='block';
+  }catch(e){ setStatus(`<span style="color:var(--bad)">Błąd: ${e.message}</span>`); }
+}
+
+function render(){
+  const s=DATA.podsumowanie;
+  $('#cards').innerHTML=[
+    ['obie','Wspólnych',''],['zgodne','Zgodne','ok'],['rozjazd','Rozjazd','bad'],
+    ['tylkoLantek','Tylko Lantek','only'],['tylkoErp','Tylko ERP','only'],['sztNiepewne','Szt. niepewne','warn']
+  ].map(([k,l,c])=>`<div class="card ${c}"><div class="n">${s[k]??0}</div><div class="l">${l}</div></div>`).join('');
+
+  const mags=[...new Set(DATA.wiersze.map(w=>w.mag))].sort();
+  $('#magf').innerHTML='<option value="">wszystkie magazyny</option>'+mags.map(m=>`<option>${m}</option>`).join('');
+  $('#magf').value=filterMag;
+
+  const chips=[['','Wszystkie'],['ROZJAZD','Rozjazd'],['TYLKO_LANTEK','Tylko Lantek'],['TYLKO_ERP','Tylko ERP'],['ZGODNE','Zgodne']];
+  $('#chips').innerHTML=chips.map(([v,l])=>`<span class="chip ${filterStatus===v?'active':''}" data-s="${v}">${l}</span>`).join('');
+  $('#chips').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{filterStatus=c.dataset.s;render()});
+
+  $('#hrow').innerHTML=COLS.map(c=>{
+    const arrow=sortK===c.k?(sortDir>0?' ▲':' ▼'):'';
+    return `<th class="${c.l?'l':''}" data-k="${c.k}">${c.t}${arrow}</th>`;
+  }).join('');
+  $('#hrow').querySelectorAll('th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k; if(sortK===k)sortDir*=-1; else {sortK=k;sortDir=1;} render();
+  });
+
+  let rows=DATA.wiersze.slice();
+  if(filterStatus) rows=rows.filter(r=>r.status===filterStatus);
+  if(filterMag) rows=rows.filter(r=>r.mag===filterMag);
+  if(q){const t=q.toLowerCase();rows=rows.filter(r=>(r.indeks+' '+(r.nazwa||'')).toLowerCase().includes(t));}
+  rows.sort((a,b)=>{
+    let av=a[sortK], bv=b[sortK];
+    if(av==null)av=sortDir>0?Infinity:-Infinity; if(bv==null)bv=sortDir>0?Infinity:-Infinity;
+    if(typeof av==='string')return sortDir*av.localeCompare(bv,'pl');
+    return sortDir*(av-bv);
+  });
+
+  $('#tbody').innerHTML=rows.map(r=>'<tr>'+COLS.map(c=>{
+    let v=r[c.k];
+    let cls=c.l?'l':(c.num?'num':'');
+    let disp;
+    if(c.fmt) disp=v==null?'':c.fmt(v);
+    else if(v==null) disp='<span class="muted">—</span>';
+    else if(c.diff){ const cl=v>0?'pos':(v<0?'neg':''); disp=`<span class="${cl}">${v>0?'+':''}${v}</span>`; }
+    else if(c.num) disp=fmtNum(v);
+    else disp=esc(v);
+    if(c.k==='indeks' && r.szt_niepewne) disp+=' <span class="warnbadge" title="Brak wymiaru w ERP przy części partii — przelicznik na sztuki niepewny">⚠</span>';
+    return `<td class="${cls}">${disp}</td>`;
+  }).join('')+'</tr>').join('');
+  $('#foot').textContent=`Pokazano ${rows.length} z ${DATA.wiersze.length} pozycji. Δ = Lantek − ERP (stan bieżący; jednostka z kol. „Jedn.": profile mb, arkusze szt). Dodatnie Δ = Lantek pokazuje więcej niż ERP.`;
+}
+
+function fmtNum(v){return typeof v==='number'?v.toLocaleString('pl-PL',{maximumFractionDigits:3}):esc(v)}
+function esc(s){return String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}
+
+$('#search').addEventListener('input',e=>{q=e.target.value;render()});
+$('#magf').addEventListener('change',e=>{filterMag=e.target.value;render()});
+$('#reload').addEventListener('click',()=>upload(null,true));
+$('#csv').addEventListener('click',exportCsv);
+
+function exportCsv(){
+  let rows=DATA.wiersze.slice();
+  if(filterStatus) rows=rows.filter(r=>r.status===filterStatus);
+  if(filterMag) rows=rows.filter(r=>r.mag===filterMag);
+  if(q){const t=q.toLowerCase();rows=rows.filter(r=>(r.indeks+' '+(r.nazwa||'')).toLowerCase().includes(t));}
+  const cols=COLS.map(c=>c.k);
+  const head=COLS.map(c=>c.t).join(';');
+  const body=rows.map(r=>cols.map(k=>{let v=r[k];return v==null?'':String(v).replace(/;/g,',')}).join(';')).join('\n');
+  const blob=new Blob(['﻿'+head+'\n'+body],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='weryfikacja_stanow_lantek.csv';a.click();
+}
+</script>
+</body>
+</html>

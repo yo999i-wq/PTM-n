@@ -1,0 +1,11 @@
+{
+  "port": 3066,
+  "firebird": {
+    "host": "IP_SERWERA_FIREBIRD",
+    "port": 3050,
+    "database": "NAZWA_BAZY",
+    "user": "UZYTKOWNIK",
+    "password": "HASLO"
+  },
+  "magazyny": ["ML2", "ML3", "MO2", "MO3"]
+}
